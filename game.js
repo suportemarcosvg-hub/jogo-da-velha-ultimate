@@ -1835,16 +1835,25 @@ window.openPrivateChat = function(targetName) {
 
 function closePrivateChat() {
     if (chatPanel) chatPanel.classList.add('hidden');
-    if (currentChatTarget && chatToggleBtn) {
-        chatToggleBtn.classList.remove('hidden');
+    if (chatToggleBtn) {
+        if (Object.keys(privateChatSession).length > 0) {
+            chatToggleBtn.classList.remove('hidden');
+        }
     }
 }
 
 if (chatCloseBtn) chatCloseBtn.addEventListener('click', closePrivateChat);
 if (chatToggleBtn) {
     chatToggleBtn.addEventListener('click', () => {
-        if (currentChatTarget) {
-            openPrivateChat(currentChatTarget);
+        let target = currentChatTarget;
+        if (!target) {
+            const users = Object.keys(privateChatSession);
+            if (users.length > 0) {
+                target = users.find(u => privateChatSession[u].some(m => !m.read && m.sender === u)) || users[0];
+            }
+        }
+        if (target) {
+            openPrivateChat(target);
         }
     });
 }
