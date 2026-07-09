@@ -353,41 +353,18 @@ function broadcast(room, data) {
     });
 }
 
-const PENDING_MATCHES_FILE = path.join(__dirname, 'pending-matches.json');
-
-function loadPendingMatches() {
-    try {
-        if (fs.existsSync(PENDING_MATCHES_FILE)) {
-            const data = JSON.parse(fs.readFileSync(PENDING_MATCHES_FILE, 'utf8'));
-            return new Map(Object.entries(data));
-        }
-    } catch (err) {
-        console.error('[!] Não foi possível carregar as partidas pendentes:', err.message);
-    }
-    return new Map();
-}
-
-function savePendingMatches() {
-    try {
-        const data = Object.fromEntries(pendingMatches_real);
-        fs.writeFileSync(PENDING_MATCHES_FILE, JSON.stringify(data, null, 2));
-    } catch (err) {
-        console.error('[!] Não foi possível salvar as partidas pendentes:', err.message);
-    }
-}
-
-const pendingMatches_real = loadPendingMatches();
+const pendingMatches_real = new Map();
 
 const pendingMatches = {
     has: (k) => pendingMatches_real.has(k),
     get: (k) => pendingMatches_real.get(k),
     set: (k, v) => {
         pendingMatches_real.set(k, v);
-        savePendingMatches();
+        
     },
     delete: (k) => {
         pendingMatches_real.delete(k);
-        savePendingMatches();
+        
     }
 };
 
