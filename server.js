@@ -134,16 +134,6 @@ async function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
     });
     await match.save();
 
-    matchHistory.matches.unshift({
-        id: match._id ? match._id.toString() : generateCode(),
-        players: { X: playerX, O: playerO },
-        winner: winnerName || 'Empate',
-        winnerSymbol,
-        playedAt: record.lastPlayed,
-        moves: moves
-    });
-    matchHistory.matches = matchHistory.matches.slice(0, 200);
-    
     return record;
 }
 
