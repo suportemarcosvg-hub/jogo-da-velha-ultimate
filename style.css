@@ -1556,8 +1556,8 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 520px) {
     .lobby-card {
-        padding: 36px 20px;
-        gap: 18px;
+        padding: 24px 16px;
+        gap: 16px;
     }
 
     .lobby-players {
@@ -1568,27 +1568,41 @@ body {
         flex-direction: column;
     }
 
+    .container {
+        padding: 10px 14px;
+        gap: 16px;
+    }
+
     .main-board {
         gap: 6px;
-        padding: 8px;
+        padding: 6px;
+        border-width: 1px;
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
     .mini-board {
         gap: 2px;
-        padding: 4px;
+        padding: 2px;
+        border-width: 1px;
     }
 
-        .info-bar {
-        gap: 8px;
+    .cell {
+        font-size: clamp(0.9rem, 5vw, 1.3rem);
+        border-radius: 4px;
+    }
+
+    .info-bar {
+        gap: 6px;
     }
 
     .player-card {
-        padding: 8px 10px;
+        padding: 6px 10px;
         gap: 6px;
     }
 
     .player-symbol {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
     }
 
     .overlay-actions {
@@ -1596,22 +1610,36 @@ body {
     }
 
     .overlay-card {
-        padding: 36px 28px;
+        padding: 24px 20px;
+        width: 90%;
     }
 }
 
 @media (max-width: 380px) {
     .player-label {
-        display: none;
+        font-size: 0.75rem;
     }
 
     .score-badge {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
     .turn-indicator {
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+
+    .room-code-value {
+        font-size: 2rem;
+    }
+
+    .btn-copy-code {
         font-size: 0.75rem;
-        padding: 8px 10px;
+        padding: 6px 12px;
+    }
+    
+    .cell {
+        font-size: clamp(0.8rem, 4.5vw, 1rem);
     }
 }
 
@@ -1815,67 +1843,7 @@ body {
     color: var(--text);
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 520px) {
-    .lobby-card {
-        padding: 36px 20px;
-        gap: 18px;
-    }
 
-    .lobby-players {
-        flex-direction: column;
-    }
-
-    .mode-buttons {
-        flex-direction: column;
-    }
-
-    .main-board {
-        gap: 6px;
-        padding: 8px;
-    }
-
-    .mini-board {
-        gap: 2px;
-        padding: 4px;
-    }
-
-    .info-bar {
-        gap: 8px;
-    }
-
-    .player-card {
-        padding: 8px 10px;
-        gap: 6px;
-    }
-
-    .player-symbol {
-        font-size: 1.5rem;
-    }
-
-    .overlay-actions {
-        flex-direction: column;
-    }
-
-    .overlay-card {
-        padding: 36px 28px;
-    }
-}
-
-@media (max-width: 380px) {
-    .player-label {
-        display: none;
-    }
-
-    .score-badge {
-        font-size: 1rem;
-    }
-
-    .turn-indicator {
-        font-size: 0.75rem;
-        padding: 8px 10px;
-    }
-}
 
 /* ===== ESTILOS DE AUTENTICAÇÃO (LOGIN / CADASTRO) ===== */
 .auth-container {
