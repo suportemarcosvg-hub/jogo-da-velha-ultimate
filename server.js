@@ -133,8 +133,8 @@ function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
     return record;
 }
 
-function formatPairScore(nameX, nameO) {
-    const record = getPairRecord(nameX, nameO);
+async function formatPairScore(nameX, nameO) {
+    const record = await getPairRecord(nameX, nameO);
     return {
         X: record.wins[cleanName(nameX)] || 0,
         O: record.wins[cleanName(nameO)] || 0,
@@ -662,7 +662,7 @@ wss.on('connection', ws => {
                             myName: p.name,
                             opponentName: opponentName,
                             state: room.state,
-                            headToHead: opponent ? formatPairScore(room.players[0].name, room.players[1].name) : null
+                            headToHead: opponent ? await formatPairScore(room.players[0].name, room.players[1].name) : null
                         });
                         
                         if (opponent && opponent.connected) {
@@ -697,7 +697,7 @@ wss.on('connection', ws => {
                     myName: p.name,
                     opponentName: opponentName,
                     state: room.state,
-                    headToHead: opponent ? formatPairScore(room.players[0].name, room.players[1].name) : null
+                    headToHead: opponent ? await formatPairScore(room.players[0].name, room.players[1].name) : null
                 });
 
                 // Avisa o oponente se ele estiver conectado
@@ -746,7 +746,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'state',
                     state: st,
-                    headToHead: formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
                 });
                 const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                 const winnerName = st.winner === playerRoom.players[0].symbol ? playerRoom.players[0].name : playerRoom.players[1].name;
@@ -803,7 +803,7 @@ wss.on('connection', ws => {
                     broadcast(playerRoom, {
                         type: 'state',
                         state: st,
-                        headToHead: formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                        headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
                     });
                     const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                     const winnerName = st.winner === playerRoom.players[0].symbol ? playerRoom.players[0].name : playerRoom.players[1].name;
@@ -833,7 +833,7 @@ wss.on('connection', ws => {
                     broadcast(playerRoom, {
                         type: 'state',
                         state: st,
-                        headToHead: formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                        headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
                     });
                     const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                     console.log(`[🤝] Empate geral em "${playerRoom.code}": ${playerRoom.players[0].name} vs ${playerRoom.players[1].name} | Duração: ${durationStr}`);
@@ -849,7 +849,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'state',
                     state: st,
-                    headToHead: formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
                 });
                 break;
             }
@@ -861,7 +861,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'restart',
                     state: playerRoom.state,
-                    headToHead: formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
                 });
                 break;
             }
