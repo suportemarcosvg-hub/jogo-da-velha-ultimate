@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema({
     username: String,
     key: { type: String, unique: true },
     passwordHash: String,
+    securityQuestion: String,
+    securityAnswerHash: String,
     createdAt: Date
 });
 const User = mongoose.model('User', userSchema);
@@ -160,12 +162,13 @@ app.get('/api/matches', async (req, res) => {
 });
 
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    const { username, password, securityQuestion, securityAnswer } = req.body;
+    if (!username || !password || !securityQuestion || !securityAnswer) return res.status(400).json({ error: 'Todos os campos (incluindo pergunta de segurança) são obrigatórios.' });
     const cleanU = cleanName(username);
     const key = playerKey(cleanU);
     if (key.length < 3) return res.status(400).json({ error: 'O nome de usuário deve ter pelo menos 3 caracteres.' });
     if (password.length < 4) return res.status(400).json({ error: 'A senha deve ter pelo menos 4 caracteres.' });
+    if (securityAnswer.length < 2) return res.status(400).json({ error: 'A resposta de segurança deve ter pelo menos 2 caracteres.' });
 
     const existing = await User.findOne({ key });
     if (existing) return res.status(400).json({ error: 'Nome de usuário já cadastrado.' });
@@ -174,6 +177,8 @@ app.post('/api/register', async (req, res) => {
         username: cleanU,
         key: key,
         passwordHash: hashPassword(password),
+        securityQuestion: securityQuestion,
+        securityAnswerHash: hashPassword(securityAnswer.trim().toLowerCase()),
         createdAt: new Date()
     });
     await user.save();
@@ -193,6 +198,53 @@ app.post('/api/login', async (req, res) => {
         return res.status(400).json({ error: 'Este usuário já está online em outra sessão.' });
     }
     res.json({ success: true, username: user.username });
+});
+
+app.post('/api/recover/question', async (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Nome de usuário obrigatório.' });
+    const key = playerKey(username);
+    const user = await User.findOne({ key });
+    if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
+    if (!user.securityQuestion) return res.status(400).json({ error: 'Este usuário é antigo e não possui pergunta de segurança cadastrada.' });
+    res.json({ success: true, question: user.securityQuestion });
+});
+
+app.post('/api/recover/reset', async (req, res) => {
+    const { username, securityAnswer, newPassword } = req.body;
+    if (!username || !securityAnswer || !newPassword) return res.status(400).json({ error: 'Preencha todos os campos.' });
+    if (newPassword.length < 4) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 4 caracteres.' });
+    
+    const key = playerKey(username);
+    const user = await User.findOne({ key });
+    if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
+    
+    const answerHash = hashPassword(securityAnswer.trim().toLowerCase());
+    if (user.securityAnswerHash !== answerHash) {
+        return res.status(400).json({ error: 'Resposta de segurança incorreta.' });
+    }
+
+    user.passwordHash = hashPassword(newPassword);
+    await user.save();
+    res.json({ success: true });
+});
+
+app.post('/api/change-password', async (req, res) => {
+    const { username, currentPassword, newPassword } = req.body;
+    if (!username || !currentPassword || !newPassword) return res.status(400).json({ error: 'Preencha todos os campos.' });
+    if (newPassword.length < 4) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 4 caracteres.' });
+
+    const key = playerKey(username);
+    const user = await User.findOne({ key });
+    if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
+
+    if (user.passwordHash !== hashPassword(currentPassword)) {
+        return res.status(400).json({ error: 'A senha atual está incorreta.' });
+    }
+
+    user.passwordHash = hashPassword(newPassword);
+    await user.save();
+    res.json({ success: true });
 });
 
 

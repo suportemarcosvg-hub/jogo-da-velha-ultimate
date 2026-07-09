@@ -145,6 +145,31 @@
               autocomplete="off" />
           </div>
           <button class="btn-auth-submit" id="btn-login-submit">Entrar</button>
+          <p class="forgot-password-link" id="btn-forgot-password">Esqueci minha senha</p>
+        </div>
+
+        <div class="auth-form-wrap hidden" id="form-recover-username">
+          <p style="color:var(--text);font-size:14px;margin-bottom:10px;">Digite seu nome de usuário para recuperar a senha.</p>
+          <div class="input-group">
+            <label class="lp-label" for="recover-username">Nome de Usuário</label>
+            <input class="name-input" id="recover-username" type="text" placeholder="Qual o seu usuário?" autocomplete="off" />
+          </div>
+          <button class="btn-auth-submit" id="btn-recover-next">Continuar</button>
+          <p class="forgot-password-link" id="btn-recover-back">Voltar para o Login</p>
+        </div>
+
+        <div class="auth-form-wrap hidden" id="form-recover-reset">
+          <p style="color:var(--text);font-size:14px;margin-bottom:10px;font-weight:bold;color:var(--primary);" id="recover-question-text">Pergunta?</p>
+          <div class="input-group">
+            <label class="lp-label" for="recover-answer">Resposta</label>
+            <input class="name-input" id="recover-answer" type="text" placeholder="Sua resposta secreta" autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="recover-new-password">Nova Senha</label>
+            <input class="name-input" id="recover-new-password" type="password" placeholder="Sua nova senha" autocomplete="off" />
+          </div>
+          <button class="btn-auth-submit" id="btn-recover-submit">Trocar Senha</button>
+          <p class="forgot-password-link" id="btn-recover-cancel">Cancelar</p>
         </div>
 
         <div class="auth-form-wrap hidden" id="form-register">
@@ -163,6 +188,19 @@
             <input class="name-input" id="register-confirm" type="password" placeholder="Repita a senha..."
               autocomplete="off" />
           </div>
+          <div class="input-group" style="margin-top: 10px;">
+            <label class="lp-label" for="register-question">Pergunta de Segurança (Caso esqueça a senha)</label>
+            <select class="name-input" id="register-question" style="cursor: pointer; padding-right: 10px; color: var(--text);">
+              <option value="Qual o nome do seu primeiro animal de estimação?">Qual o nome do seu primeiro animal de estimação?</option>
+              <option value="Qual o nome de solteira da sua mãe?">Qual o nome de solteira da sua mãe?</option>
+              <option value="Qual a sua comida favorita?">Qual a sua comida favorita?</option>
+              <option value="Em qual cidade você nasceu?">Em qual cidade você nasceu?</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="register-answer">Resposta Secreta</label>
+            <input class="name-input" id="register-answer" type="text" placeholder="Sua resposta (não esqueça!)..." autocomplete="off" />
+          </div>
           <button class="btn-auth-submit" id="btn-register-submit">Criar Conta</button>
         </div>
 
@@ -177,7 +215,27 @@
             <p class="user-name-title" id="logged-in-username">Nenhum</p>
             <p class="user-status"><span class="status-dot"></span> Jogador Conectado</p>
           </div>
-          <button class="btn-logout" id="btn-logout" title="Sair da conta">Sair</button>
+          <div style="display:flex; gap: 8px;">
+            <button class="btn-logout" id="btn-change-password-show" title="Trocar senha" style="background:var(--bg); border:1px solid var(--border);">Mudar Senha</button>
+            <button class="btn-logout" id="btn-logout" title="Sair da conta">Sair</button>
+          </div>
+        </div>
+
+        <div class="auth-form-wrap hidden" id="form-change-password" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
+          <p style="color:var(--text);font-size:14px;margin-bottom:10px;">Trocar Senha</p>
+          <div class="input-group">
+            <label class="lp-label" for="change-current-password">Senha Atual</label>
+            <input class="name-input" id="change-current-password" type="password" placeholder="Sua senha atual" autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="change-new-password">Nova Senha</label>
+            <input class="name-input" id="change-new-password" type="password" placeholder="Nova senha" autocomplete="off" />
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="btn-auth-submit" id="btn-change-password-submit" style="flex: 1;">Salvar</button>
+            <button class="btn-auth-submit" id="btn-change-password-cancel" style="flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text);">Cancelar</button>
+          </div>
+          <p class="auth-error hidden" id="change-auth-error-msg" style="margin-top: 10px;"></p>
         </div>
       </div>
 

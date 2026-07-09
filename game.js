@@ -244,14 +244,14 @@ async function loginUser(username, password) {
     }
 }
 
-async function registerUser(username, password) {
+async function registerUser(username, password, securityQuestion, securityAnswer) {
     const errorEl = document.getElementById('auth-error-msg');
     if (errorEl) errorEl.classList.add('hidden');
     try {
         const res = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, securityQuestion, securityAnswer })
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -440,6 +440,8 @@ if (tabLogin && tabRegister && formLogin && formRegister) {
         formLogin.classList.remove('hidden');
         formRegister.classList.add('hidden');
         if (authErrorMsg) authErrorMsg.classList.add('hidden');
+        document.getElementById('form-recover-username').classList.add('hidden');
+        document.getElementById('form-recover-reset').classList.add('hidden');
     });
 
     tabRegister.addEventListener('click', () => {
@@ -473,20 +475,160 @@ document.getElementById('btn-register-submit').addEventListener('click', () => {
     const u = document.getElementById('register-username').value.trim();
     const p = document.getElementById('register-password').value;
     const c = document.getElementById('register-confirm').value;
-    if (!u || !p || !c) {
+    const sq = document.getElementById('register-question').value;
+    const sa = document.getElementById('register-answer').value;
+    
+    if (!u || !p || !c || !sq || !sa) {
         showAuthError('Por favor, preencha todos os campos.');
         return;
     }
     if (p !== c) {
-        showAuthError('As senhas nao conferem.');
+        showAuthError('As senhas não conferem.');
         return;
     }
-    registerUser(u, p);
+    registerUser(u, p, sq, sa);
 });
 
 document.getElementById('register-confirm').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('btn-register-submit').click();
 });
+
+// ── Troca e Recuperação de Senha ──────────────────────────────────────────────
+
+document.getElementById('btn-forgot-password').addEventListener('click', () => {
+    document.getElementById('form-login').classList.add('hidden');
+    document.getElementById('form-register').classList.add('hidden');
+    document.querySelector('.auth-tabs').classList.add('hidden');
+    document.getElementById('form-recover-username').classList.remove('hidden');
+    const err = document.getElementById('auth-error-msg');
+    if(err) err.classList.add('hidden');
+});
+
+document.getElementById('btn-recover-back').addEventListener('click', () => {
+    document.getElementById('form-recover-username').classList.add('hidden');
+    document.querySelector('.auth-tabs').classList.remove('hidden');
+    document.getElementById('form-login').classList.remove('hidden');
+    const err = document.getElementById('auth-error-msg');
+    if(err) err.classList.add('hidden');
+});
+
+let recoveryUsername = '';
+document.getElementById('btn-recover-next').addEventListener('click', async () => {
+    const u = document.getElementById('recover-username').value.trim();
+    if (!u) {
+        showAuthError('Digite seu nome de usuário.');
+        return;
+    }
+    try {
+        const res = await fetch('/api/recover/question', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            recoveryUsername = u;
+            document.getElementById('form-recover-username').classList.add('hidden');
+            document.getElementById('form-recover-reset').classList.remove('hidden');
+            document.getElementById('recover-question-text').textContent = data.question;
+            const err = document.getElementById('auth-error-msg');
+            if(err) err.classList.add('hidden');
+        } else {
+            showAuthError(data.error || 'Erro ao buscar usuário.');
+        }
+    } catch (e) {
+        showAuthError('Erro de conexão.');
+    }
+});
+
+document.getElementById('btn-recover-cancel').addEventListener('click', () => {
+    document.getElementById('form-recover-reset').classList.add('hidden');
+    document.getElementById('form-recover-username').classList.remove('hidden');
+    document.getElementById('recover-answer').value = '';
+    document.getElementById('recover-new-password').value = '';
+    const err = document.getElementById('auth-error-msg');
+    if(err) err.classList.add('hidden');
+});
+
+document.getElementById('btn-recover-submit').addEventListener('click', async () => {
+    const a = document.getElementById('recover-answer').value;
+    const np = document.getElementById('recover-new-password').value;
+    if (!a || !np) {
+        showAuthError('Preencha a resposta e a nova senha.');
+        return;
+    }
+    try {
+        const res = await fetch('/api/recover/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: recoveryUsername, securityAnswer: a, newPassword: np })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert('Senha alterada com sucesso! Você já pode fazer login.');
+            document.getElementById('form-recover-reset').classList.add('hidden');
+            document.querySelector('.auth-tabs').classList.remove('hidden');
+            document.getElementById('form-login').classList.remove('hidden');
+            document.getElementById('login-password').value = '';
+        } else {
+            showAuthError(data.error || 'Erro ao trocar senha.');
+        }
+    } catch (e) {
+        showAuthError('Erro de conexão.');
+    }
+});
+
+document.getElementById('btn-change-password-show').addEventListener('click', () => {
+    const form = document.getElementById('form-change-password');
+    form.classList.toggle('hidden');
+});
+
+document.getElementById('btn-change-password-cancel').addEventListener('click', () => {
+    document.getElementById('form-change-password').classList.add('hidden');
+    document.getElementById('change-current-password').value = '';
+    document.getElementById('change-new-password').value = '';
+});
+
+function showChangePasswordError(msg) {
+    const err = document.getElementById('change-auth-error-msg');
+    if (!err) return;
+    err.textContent = msg;
+    err.classList.remove('hidden');
+    err.classList.remove('shake');
+    void err.offsetWidth;
+    err.classList.add('shake');
+}
+
+document.getElementById('btn-change-password-submit').addEventListener('click', async () => {
+    const cp = document.getElementById('change-current-password').value;
+    const np = document.getElementById('change-new-password').value;
+    const err = document.getElementById('change-auth-error-msg');
+    if(err) err.classList.add('hidden');
+    
+    if (!cp || !np) {
+        showChangePasswordError('Preencha todos os campos.');
+        return;
+    }
+    try {
+        const res = await fetch('/api/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser, currentPassword: cp, newPassword: np })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert('Senha alterada com sucesso!');
+            document.getElementById('form-change-password').classList.add('hidden');
+            document.getElementById('change-current-password').value = '';
+            document.getElementById('change-new-password').value = '';
+        } else {
+            showChangePasswordError(data.error || 'Erro ao trocar senha.');
+        }
+    } catch (e) {
+        showChangePasswordError('Erro de conexão.');
+    }
+});
+
 
 document.getElementById('btn-logout').addEventListener('click', () => {
     logoutUser();

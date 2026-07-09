@@ -1987,6 +1987,21 @@ body {
     75% { transform: translateX(4px); }
 }
 
+.forgot-password-link {
+    color: var(--primary);
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 15px;
+    cursor: pointer;
+    text-decoration: underline;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.forgot-password-link:hover {
+    opacity: 1;
+}
+
 /* Painel de usuário logado */
 .logged-in-container {
     width: 100%;
