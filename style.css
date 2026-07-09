@@ -1058,64 +1058,6 @@ body {
     line-height: 1.3;
 }
 
-/* Logo do Lobby */
-.lobby-logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 6px;
-    margin-top: 10px;
-}
-
-.logo-x {
-    color: var(--x-color);
-    font-size: 2.5rem;
-    font-weight: 900;
-    line-height: 1;
-    text-shadow: 0 4px 10px var(--x-glow);
-}
-
-.logo-o {
-    color: var(--o-color);
-    font-size: 2.5rem;
-    font-weight: 900;
-    line-height: 1;
-    text-shadow: 0 4px 10px var(--o-glow);
-}
-
-.logo-text {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.logo-title {
-    font-size: 2.2rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
-}
-
-.logo-badge {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #475569;
-}
-
-.lobby-subtitle {
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-align: center;
-    margin-bottom: 24px;
-}
-
 /* User Profile no Lobby */
 .user-profile {
     display: flex;
@@ -1572,6 +1514,20 @@ body {
         padding: 10px 14px;
         gap: 16px;
     }
+    
+    .header {
+        gap: 8px;
+    }
+    
+    .btn-back {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .btn-back svg {
+        width: 14px;
+        height: 14px;
+    }
 
     .main-board {
         gap: 6px;
@@ -1594,15 +1550,24 @@ body {
 
     .info-bar {
         gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 8px;
     }
 
     .player-card {
-        padding: 6px 10px;
-        gap: 6px;
+        padding: 6px 8px;
+        gap: 4px;
+        flex: 1 1 40%;
     }
 
     .player-symbol {
         font-size: 1.2rem;
+    }
+    
+    .turn-indicator {
+        flex: 1 1 100%;
+        order: 3;
     }
 
     .overlay-actions {
@@ -1617,11 +1582,13 @@ body {
 
 @media (max-width: 380px) {
     .player-label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
     .score-badge {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        min-width: 30px;
+        padding: 2px 6px;
     }
 
     .turn-indicator {
@@ -1640,6 +1607,11 @@ body {
     
     .cell {
         font-size: clamp(0.8rem, 4.5vw, 1rem);
+    }
+    
+    .btn-back {
+        padding: 4px 6px;
+        font-size: 0.7rem;
     }
 }
 
