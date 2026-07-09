@@ -2031,13 +2031,15 @@ function renderChatMessages() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function sendPrivateMessage() {
-    if (!currentChatTarget || !chatInput) return;
+function sendPrivateChatMessage() {
     const text = chatInput.value.trim();
-    if (!text) return;
+    if (!text || !currentChatTarget) return;
     
-    wsSend({ type: 'privateMessage', target: currentChatTarget, text });
-    
+    wsSend({
+        type: 'privateMessage',
+        target: currentChatTarget,
+        text: text
+    });
     // Adiciona localmente de forma imediata
     if (!privateChatSession[currentChatTarget]) privateChatSession[currentChatTarget] = [];
     privateChatSession[currentChatTarget].push({ sender: getMyName(), text, read: true });
