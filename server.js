@@ -383,15 +383,6 @@ wss.on('connection', ws => {
                     if (msg.name) {
                         loggedUser = msg.name;
                         let sockets = onlineClients.get(loggedUser);
-                        if (sockets && sockets.size > 0) {
-                            for (let oldWs of sockets) {
-                                try {
-                                    oldWs.send(JSON.stringify({ type: 'error', msg: 'Sua conta conectou em outro dispositivo.' }));
-                                    oldWs.close();
-                                } catch(e){}
-                            }
-                            sockets.clear();
-                        }
                         if (!sockets) {
                             sockets = new Set();
                             onlineClients.set(loggedUser, sockets);
