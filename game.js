@@ -1217,8 +1217,12 @@ document.getElementById('overlay-left').classList.remove('hidden');
 break;
 
         case 'error':
-showOnlineError(msg.msg);
-break;
+            showOnlineError(msg.msg);
+            if (msg.msg.includes('outro dispositivo')) {
+                window.kickedOut = true;
+                if (socket) socket.close();
+            }
+            break;
     }
 }
 
