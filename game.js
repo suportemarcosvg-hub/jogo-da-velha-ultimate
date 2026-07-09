@@ -923,6 +923,9 @@ function handleServerMessage(event) {
             applyPairScoreToScoreboard();
             state = msg.state;
             
+            const btnChat = document.getElementById('btn-chat-opponent');
+            if (btnChat) btnChat.classList.remove('hidden');
+            
             // Esconde o placar estendido
             const mr1 = document.getElementById('match-record');
             if (mr1) mr1.classList.add('hidden');
@@ -949,6 +952,9 @@ players = {
 currentPairScore = msg.headToHead || { X: 0, O: 0, draws: 0, total: 0 };
 applyPairScoreToScoreboard();
 state = msg.state;
+
+const btnChatRejoin = document.getElementById('btn-chat-opponent');
+if (btnChatRejoin) btnChatRejoin.classList.remove('hidden');
 
 // Esconde o placar estendido
 const mr2 = document.getElementById('match-record');
@@ -1854,6 +1860,16 @@ if (chatToggleBtn) {
         }
         if (target) {
             openPrivateChat(target);
+        }
+    });
+}
+
+const btnChatOpponent = document.getElementById('btn-chat-opponent');
+if (btnChatOpponent) {
+    btnChatOpponent.addEventListener('click', () => {
+        const opponentName = players[mySymbol === 'X' ? 'O' : 'X'];
+        if (opponentName && opponentName !== 'Aguardando...') {
+            openPrivateChat(opponentName);
         }
     });
 }

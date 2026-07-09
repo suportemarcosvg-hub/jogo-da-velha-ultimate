@@ -4,14 +4,13 @@
  */
 
 'use strict';
-require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const crypto = require('crypto');
-const mongoose = require('mongoose');
-
+const fs = require('fs');
 
 const PORT = process.env.PORT || 2026;
 
@@ -22,39 +21,53 @@ const wss = new WebSocket.Server({ server });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
-mongoose.connect(process.env.MONGODB_URI).then(() => console.log('MongoDB Conectado!')).catch(console.error);
+const USERS_FILE = path.join(__dirname, 'users.json');
+let usersDb = loadUsers();
 
-const userSchema = new mongoose.Schema({
-    username: String,
-    key: { type: String, unique: true },
-    passwordHash: String,
-    createdAt: Date
-});
-const User = mongoose.model('User', userSchema);
+function loadUsers() {
+    try {
+        if (fs.existsSync(USERS_FILE)) {
+            return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+        }
+    } catch (err) {
+        console.error('[!] Não foi possível carregar os usuários:', err.message);
+    }
+    return {};
+}
 
-const pairSchema = new mongoose.Schema({
-    key: { type: String, unique: true },
-    players: [String],
-    playerKeys: [String],
-    wins: { type: Map, of: Number },
-    draws: { type: Number, default: 0 },
-    total: { type: Number, default: 0 },
-    lastPlayed: Date,
-    lastStarter: String
-});
-const Pair = mongoose.model('Pair', pairSchema);
-
-const matchSchema = new mongoose.Schema({
-    date: Date,
-    players: { X: String, O: String },
-    playerKeys: [String],
-    winner: String,
-    moves: Array
-});
-const Match = mongoose.model('Match', matchSchema);
+function saveUsers() {
+    try {
+        fs.writeFileSync(USERS_FILE, JSON.stringify(usersDb, null, 2));
+    } catch (err) {
+        console.error('[!] Não foi possível salvar os usuários:', err.message);
+    }
+}
 
 function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+const HISTORY_FILE = path.join(__dirname, 'match-history.json');
+let matchHistory = loadHistory();
+
+
+function loadHistory() {
+    try {
+        if (fs.existsSync(HISTORY_FILE)) {
+            return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+        }
+    } catch (err) {
+        console.error('[!] Não foi possível carregar o histórico:', err.message);
+    }
+    return { pairs: {}, matches: [] };
+}
+
+function saveHistory() {
+    try {
+        fs.writeFileSync(HISTORY_FILE, JSON.stringify(matchHistory, null, 2));
+    } catch (err) {
+        console.error('[!] Não foi possível salvar o histórico:', err.message);
+    }
 }
 
 function cleanName(name) {
@@ -69,25 +82,20 @@ function pairKey(nameA, nameB) {
     return [playerKey(nameA), playerKey(nameB)].sort().join('::');
 }
 
-
-async function getPairRecord(nameA, nameB) {
+function getPairRecord(nameA, nameB) {
     const key = pairKey(nameA, nameB);
-    let pair = await Pair.findOne({ key });
-    if (!pair) {
+    if (!matchHistory.pairs[key]) {
         const ordered = [cleanName(nameA), cleanName(nameB)].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-        pair = new Pair({
-            key,
+        matchHistory.pairs[key] = {
             players: ordered,
-            playerKeys: [playerKey(nameA), playerKey(nameB)],
             wins: { [ordered[0]]: 0, [ordered[1]]: 0 },
             draws: 0,
             total: 0,
             lastPlayed: null,
             lastStarter: null
-        });
-        await pair.save();
+        };
     }
-    return pair;
+    return matchHistory.pairs[key];
 }
 
 function getStartingSymbolForPair(playerXName, playerOName) {
@@ -127,7 +135,7 @@ function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
         moves: moves
     });
     matchHistory.matches = matchHistory.matches.slice(0, 200);
-    
+    saveHistory();
     return record;
 }
 
@@ -141,57 +149,72 @@ function formatPairScore(nameX, nameO) {
     };
 }
 
-app.get('/api/history', async (req, res) => {
+app.get('/api/history', (req, res) => {
     const player = cleanName(req.query.player || '');
     const key = playerKey(player);
-    const pairs = await Pair.find({ playerKeys: key })
-        .sort({ lastPlayed: -1 })
-        .limit(20);
+    const pairs = Object.values(matchHistory.pairs)
+        .filter(pair => pair.players.some(name => playerKey(name) === key))
+        .sort((a, b) => String(b.lastPlayed || '').localeCompare(String(a.lastPlayed || '')))
+        .slice(0, 20);
+
     res.json({ player, pairs });
 });
 
-app.get('/api/matches', async (req, res) => {
+app.get('/api/matches', (req, res) => {
     const player = cleanName(req.query.player || '');
     const key = playerKey(player);
-    const matches = await Match.find({ playerKeys: key })
-        .sort({ date: -1 })
-        .limit(5);
-    res.json({ player, matches });
+    const userMatches = matchHistory.matches
+        .filter(m => playerKey(m.players.X) === key || playerKey(m.players.O) === key)
+        .slice(0, 5); // Pega apenas as 5 mais recentes
+
+    res.json({ player, matches: userMatches });
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    }
     const cleanU = cleanName(username);
     const key = playerKey(cleanU);
-    if (key.length < 3) return res.status(400).json({ error: 'O nome de usuário deve ter pelo menos 3 caracteres.' });
-    if (password.length < 4) return res.status(400).json({ error: 'A senha deve ter pelo menos 4 caracteres.' });
 
-    const existing = await User.findOne({ key });
-    if (existing) return res.status(400).json({ error: 'Nome de usuário já cadastrado.' });
+    if (key.length < 3) {
+        return res.status(400).json({ error: 'O nome de usuário deve ter pelo menos 3 caracteres.' });
+    }
+    if (password.length < 4) {
+        return res.status(400).json({ error: 'A senha deve ter pelo menos 4 caracteres.' });
+    }
 
-    const user = new User({
+    if (usersDb[key]) {
+        return res.status(400).json({ error: 'Nome de usuário já cadastrado.' });
+    }
+
+    usersDb[key] = {
         username: cleanU,
-        key: key,
         passwordHash: hashPassword(password),
-        createdAt: new Date()
-    });
-    await user.save();
+        createdAt: new Date().toISOString()
+    };
+    saveUsers();
+
     res.json({ success: true, username: cleanU });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+    }
     const key = playerKey(username);
-    const user = await User.findOne({ key });
+    const user = usersDb[key];
 
     if (!user || user.passwordHash !== hashPassword(password)) {
         return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
     }
+
     if (onlineClients.has(user.username)) {
         return res.status(400).json({ error: 'Este usuário já está online em outra sessão.' });
     }
+
     res.json({ success: true, username: user.username });
 });
 
@@ -347,7 +370,7 @@ wss.on('connection', ws => {
     let playerIdx = null; // 0 para criador (X), 1 para entrante (O)
     let loggedUser = null;
 
-    ws.on('message', async message => {
+    ws.on('message', message => {
         try {
             const msg = JSON.parse(message);
 
@@ -439,7 +462,7 @@ wss.on('connection', ws => {
                     myName: room.players[0].name,
                     opponentName: room.players[1].name,
                     state: room.state,
-                    headToHead: await formatPairScore(room.players[0].name, room.players[1].name)
+                    headToHead: formatPairScore(room.players[0].name, room.players[1].name)
                 });
                 send(room.players[1].ws, {
                     type: 'gameStart',
@@ -448,7 +471,7 @@ wss.on('connection', ws => {
                     opponentName: room.players[0].name,
                     state: room.state,
                     playerId: pId,
-                    headToHead: await formatPairScore(room.players[0].name, room.players[1].name)
+                    headToHead: formatPairScore(room.players[0].name, room.players[1].name)
                 });
 
                 console.log(`[>] Jogo iniciado em "${code}": ${room.players[0].name}(X) vs ${room.players[1].name}(O) às ${new Date().toLocaleString('pt-BR')}`);
@@ -712,7 +735,7 @@ wss.on('connection', ws => {
                 
                 if (!st.matchRecorded) {
                     st.matchRecorded = true;
-                    playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                    playerRoom.headToHead = recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
                     const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                     pendingMatches.delete(matchKey);
                 }
@@ -770,7 +793,7 @@ wss.on('connection', ws => {
                     }
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                        playerRoom.headToHead = recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
@@ -800,7 +823,7 @@ wss.on('connection', ws => {
                     st.winner = 'draw';
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                        playerRoom.headToHead = recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
