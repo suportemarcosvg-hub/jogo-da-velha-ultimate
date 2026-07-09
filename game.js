@@ -705,13 +705,19 @@ function disconnectWS() {
 
 function reconnectToLobby() {
     disconnectWS();
-    setTimeout(() => {
-        if (currentUser) {
-            connectWS(() => {
-                wsSend({ type: 'enterLobby', name: getMyName() });
-            });
-        }
-    }, 300);
+    if (mode === 'online') {
+        showScreen('online');
+        setTimeout(() => resetOnlineUI(), 300);
+    } else {
+        showScreen('lobby');
+        setTimeout(() => {
+            if (currentUser) {
+                connectWS(() => {
+                    wsSend({ type: 'enterLobby', name: getMyName() });
+                });
+            }
+        }, 300);
+    }
 }
 
 function createRoom() {
@@ -1128,7 +1134,8 @@ break;
         case 'rejoinFailed':
             clearSession();
             document.getElementById('input-room-code').value = '';
-            showScreen('lobby');
+            resetOnlineUI();
+            showScreen('online');
             break;
 
         case 'opponentRejoined':
@@ -1168,9 +1175,8 @@ break;
         case 'matchPausedRedirect':
             if (disconnectInterval) { clearInterval(disconnectInterval); disconnectInterval = null; }
             document.getElementById('overlay-left').classList.add('hidden');
-            disconnectWS();
             updateStatus('A partida foi pausada e salva.');
-            showScreen('lobby');
+            reconnectToLobby();
             break;
 
         case 'state':
@@ -1208,9 +1214,8 @@ break;
         case 'drawAcceptedRedirect':
             document.getElementById('overlay-draw-request').classList.add('hidden');
             if (document.getElementById('overlay-surrender')) document.getElementById('overlay-surrender').classList.add('hidden');
-            disconnectWS();
             renderHistory();
-            showScreen('lobby');
+            reconnectToLobby();
             break;
 
         case 'opponentLeft':
@@ -1338,7 +1343,6 @@ document.getElementById('btn-back-game').addEventListener('click', () => {
     } else {
         reconnectToLobby();
         renderHistory();
-        showScreen('lobby');
     }
 });
 document.getElementById('btn-suggest-draw').addEventListener('click', () => {
@@ -1392,13 +1396,11 @@ document.getElementById('btn-lobby').addEventListener('click', () => {
     overlay.classList.add('hidden');
     reconnectToLobby();
     renderHistory();
-    showScreen('lobby');
 });
 document.getElementById('btn-lobby-left').addEventListener('click', () => {
     overlayLeft.classList.add('hidden');
     reconnectToLobby();
     renderHistory();
-    showScreen('lobby');
 });
 
 // Respostas ao pedido de empate
@@ -1419,7 +1421,6 @@ document.getElementById('btn-confirm-surrender').addEventListener('click', () =>
     // Desconecta e volta imediatamente, o servidor se encarrega de dar o ponto e fechar a sala
     reconnectToLobby();
     renderHistory();
-    showScreen('lobby');
 });
 document.getElementById('btn-cancel-surrender').addEventListener('click', () => {
     document.getElementById('overlay-surrender').classList.add('hidden');

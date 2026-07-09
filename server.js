@@ -92,36 +92,50 @@ async function getPairRecord(nameA, nameB) {
     return pair;
 }
 
-function getStartingSymbolForPair(playerXName, playerOName) {
+async function getStartingSymbolForPair(playerXName, playerOName) {
     const pX = cleanName(playerXName);
     const pO = cleanName(playerOName);
-    const record = getPairRecord(pX, pO);
+    const record = await getPairRecord(pX, pO);
     
     if (!record.lastStarter || record.lastStarter === pO) {
         record.lastStarter = pX;
+        await record.save();
         return 'X';
     } else {
         record.lastStarter = pO;
+        await record.save();
         return 'O';
     }
 }
 
-function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
+async function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
     const playerX = cleanName(nameX);
     const playerO = cleanName(nameO);
-    const record = getPairRecord(playerX, playerO);
+    const record = await getPairRecord(playerX, playerO);
     const winnerName = winnerSymbol === 'X' ? playerX : winnerSymbol === 'O' ? playerO : null;
 
     record.total += 1;
     record.lastPlayed = new Date().toISOString();
     if (winnerName) {
+        if (!record.wins) record.wins = {};
         record.wins[winnerName] = (record.wins[winnerName] || 0) + 1;
+        record.markModified('wins');
     } else {
         record.draws += 1;
     }
+    await record.save();
+
+    const match = new Match({
+        date: new Date(),
+        players: { X: playerX, O: playerO },
+        playerKeys: [playerKey(playerX), playerKey(playerO)],
+        winner: winnerName || 'Empate',
+        moves: moves
+    });
+    await match.save();
 
     matchHistory.matches.unshift({
-        id: generateCode(),
+        id: match._id ? match._id.toString() : generateCode(),
         players: { X: playerX, O: playerO },
         winner: winnerName || 'Empate',
         winnerSymbol,
@@ -452,7 +466,7 @@ wss.on('connection', ws => {
                     room.state = pending.state || pending;
                     room.moves = pending.moves || [];
                 } else {
-                    const startingSymbol = getStartingSymbolForPair(playerXName, playerOName);
+                    const startingSymbol = await getStartingSymbolForPair(playerXName, playerOName);
                     room.state = createInitialGameState(startingSymbol);
                     room.moves = [];
                 }
@@ -576,7 +590,7 @@ wss.on('connection', ws => {
                     initialMoves = pending.moves || [];
                     pendingMatches.delete(matchKey);
                 } else {
-                    const startingSymbol = getStartingSymbolForPair(senderUser, responderUser);
+                    const startingSymbol = await getStartingSymbolForPair(senderUser, responderUser);
                     initialState = createInitialGameState(startingSymbol);
                 }
 
