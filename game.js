@@ -2049,9 +2049,9 @@ function sendPrivateChatMessage() {
     chatInput.value = '';
 }
 
-if (chatSendBtn) chatSendBtn.addEventListener('click', sendPrivateMessage);
+if (chatSendBtn) chatSendBtn.addEventListener('click', sendPrivateChatMessage);
 if (chatInput) {
     chatInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') sendPrivateMessage();
+        if (e.key === 'Enter') sendPrivateChatMessage();
     });
 }
