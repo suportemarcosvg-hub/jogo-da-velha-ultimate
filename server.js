@@ -386,7 +386,7 @@ wss.on('connection', ws => {
                         if (sockets && sockets.size > 0) {
                             for (let oldWs of sockets) {
                                 try {
-                                    oldWs.send(JSON.stringify({ type: 'server-error', message: 'Sua conta conectou em outro dispositivo.' }));
+                                    oldWs.send(JSON.stringify({ type: 'error', msg: 'Sua conta conectou em outro dispositivo.' }));
                                     oldWs.close();
                                 } catch(e){}
                             }
