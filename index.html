@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo da Velha 2 – Ultimate Tic-Tac-Toe</title>
+  <meta name="description" content="Super Jogo da Velha multijogador com salas online e sistema de usuários." />
+  <style>
+    /* ── Estilos de Reações / Chat Rápido ── */
+    .emote-bubble {
+      position: absolute;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--surface);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .emote-bubble.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .emote-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: var(--surface) transparent transparent transparent;
+    }
+
+    .emote-panel {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .emote-panel.hidden {
+      display: none;
+    }
+
+    .emote-row {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .emote-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      flex: 1;
+    }
+
+    .emote-btn:hover {
+      background: var(--secondary);
+      border-color: var(--primary);
+    }
+
+    .emote-btn.text-emote {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px;
+    }
+
+    /* ── Efeitos e utilitários ── */
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TELA 1 – LOBBY PRINCIPAL
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-lobby">
+    <div class="lobby-card">
+      <div class="lobby-logo">
+        <span class="logo-x">X</span>
+        <div class="logo-text">
+          <span class="logo-title">Jogo da Velha</span>
+          <span class="logo-badge">2</span>
+        </div>
+        <span class="logo-o">O</span>
+      </div>
+      <p class="lobby-subtitle">Ultimate Tic-Tac-Toe</p>
+
+      <div class="lobby-divider"></div>
+
+      <!-- Interface de autenticação (Login / Cadastro) -->
+      <div class="auth-container" id="auth-container">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login">Entrar</button>
+          <button class="auth-tab" id="tab-register">Cadastrar</button>
+        </div>
+
+        <div class="auth-form-wrap" id="form-login">
+          <div class="input-group">
+            <label class="lp-label" for="login-username">Nome de Usuário</label>
+            <input class="name-input" id="login-username" type="text" maxlength="16" placeholder="Digite seu usuário..."
+              autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="login-password">Senha</label>
+            <input class="name-input" id="login-password" type="password" placeholder="Digite sua senha..."
+              autocomplete="off" />
+          </div>
+          <button class="btn-auth-submit" id="btn-login-submit">Entrar</button>
+        </div>
+
+        <div class="auth-form-wrap hidden" id="form-register">
+          <div class="input-group">
+            <label class="lp-label" for="register-username">Nome de Usuário</label>
+            <input class="name-input" id="register-username" type="text" maxlength="16"
+              placeholder="Mínimo 3 caracteres..." autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="register-password">Senha</label>
+            <input class="name-input" id="register-password" type="password" placeholder="Mínimo 4 caracteres..."
+              autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="lp-label" for="register-confirm">Confirmar Senha</label>
+            <input class="name-input" id="register-confirm" type="password" placeholder="Repita a senha..."
+              autocomplete="off" />
+          </div>
+          <button class="btn-auth-submit" id="btn-register-submit">Criar Conta</button>
+        </div>
+
+        <p class="auth-error hidden" id="auth-error-msg"></p>
+      </div>
+
+      <!-- Painel do usuário logado -->
+      <div class="logged-in-container hidden" id="logged-in-container">
+        <div class="user-profile">
+          <div class="user-avatar-wrap">👤</div>
+          <div class="user-details">
+            <p class="user-name-title" id="logged-in-username">Nenhum</p>
+            <p class="user-status"><span class="status-dot"></span> Jogador Conectado</p>
+          </div>
+          <button class="btn-logout" id="btn-logout" title="Sair da conta">Sair</button>
+        </div>
+      </div>
+
+      <!-- Conteúdo do Lobby (visível apenas após login) -->
+      <div id="lobby-content" class="hidden">
+        <!-- Histórico de partidas (Confrontos) -->
+        <div class="history-panel" id="history-panel">
+          <div class="history-head">
+            <span>Confrontos</span>
+            <button class="history-refresh" id="btn-refresh-history" title="Atualizar histórico">↻</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <p class="history-empty">Nenhuma partida encontrada.</p>
+          </div>
+        </div>
+
+        <!-- Replays de partidas -->
+        <div class="history-panel" id="matches-panel" style="margin-top:20px;">
+          <div class="history-head">
+            <span>Últimas Partidas (Replays)</span>
+            <button class="history-refresh" id="btn-refresh-matches" title="Atualizar partidas">↻</button>
+          </div>
+          <div class="history-list" id="matches-list">
+            <p class="history-empty">Nenhum replay disponível ainda.</p>
+          </div>
+        </div>
+
+        <!-- Escolha do modo -->
+        <div class="mode-buttons" id="mode-buttons-wrap">
+          <button class="mode-btn mode-local" id="btn-mode-local">
+            <span class="mode-icon">👥</span>
+            <div class="mode-info">
+              <span class="mode-title">Local</span>
+              <span class="mode-desc">2 jogadores,<br>mesma tela</span>
+            </div>
+          </button>
+          <button class="mode-btn mode-ai" id="btn-mode-ai">
+            <span class="mode-icon">🤖</span>
+            <div class="mode-info">
+              <span class="mode-title">Computador</span>
+              <span class="mode-desc">Enfrente a<br>Máquina (IA)</span>
+            </div>
+          </button>
+          <button class="mode-btn mode-online" id="btn-mode-online">
+            <span class="mode-icon">🌐</span>
+            <div class="mode-info">
+              <span class="mode-title">Online</span>
+              <span class="mode-desc">Criar ou<br>entrar em sala</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="rules-hint">
+        <details>
+          <summary>Como jogar?</summary>
+          <ul class="rules-list">
+            <li>🎯 O tabuleiro tem <strong>9 mini-tabuleiros</strong> num grid 3×3.</li>
+            <li>➡️ A célula que você jogar indica <strong>qual mini-tabuleiro</strong> o adversário deve usar.</li>
+            <li>🏆 Vença <strong>3 mini-tabuleiros em linha</strong> para ganhar o jogo.</li>
+            <li>🔓 Se o tabuleiro alvo estiver cheio ou ganho, jogue em <strong>qualquer um</strong>.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TELA 2 – LOBBY LOCAL E IA
+  ══════════════════════════════════════ -->
+  <div class="screen hidden" id="screen-ai">
+    <div class="lobby-card">
+      <button class="btn-back" id="btn-back-ai">← Voltar</button>
+      <h2 class="local-title">Modo Computador (IA)</h2>
+      <p class="lobby-subtitle" style="margin-top:-8px">Enfrente a máquina em 3 níveis</p>
+      <div class="lobby-divider"></div>
+      <div class="lobby-players">
+        <div class="lobby-player lobby-player-x" style="width:100%;justify-content:center;margin-bottom:15px">
+          <div class="lp-symbol x-symbol">X</div>
+          <div class="lp-field">
+            <label class="lp-label" for="input-ai-player">Você</label>
+            <input class="lp-input" id="input-ai-player" type="text" maxlength="16" placeholder="Seu Nome"
+              autocomplete="off" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Niveis de dificuldade -->
+      <div class="mode-buttons" style="flex-direction:row; gap:8px; margin-bottom:20px; flex-wrap:wrap; display:flex;">
+        <button class="overlay-btn btn-difficulty" data-level="easy" id="btn-diff-easy"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">🟢
+          Fácil</button>
+        <button class="overlay-btn btn-difficulty" data-level="medium" id="btn-diff-medium"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">🟡
+          Médio</button>
+        <button class="overlay-btn btn-difficulty" data-level="hard" id="btn-diff-hard"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">🔴
+          Difícil</button>
+        <button class="overlay-btn btn-difficulty" data-level="super_hard" id="btn-diff-super_hard"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">🔥
+          Impossível</button>
+      </div>
+
+      <!-- Velocidade da IA -->
+      <p
+        style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:6px; font-weight:600; text-transform:uppercase;">
+        Velocidade de Resposta</p>
+      <div class="mode-buttons" style="flex-direction:row; gap:8px; margin-bottom:20px; flex-wrap:wrap; display:flex;">
+        <button class="overlay-btn btn-speed" data-speed="0" id="btn-speed-fast"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease; border-color:var(--x-color);">⚡
+          Rápida</button>
+        <button class="overlay-btn btn-speed" data-speed="1500" id="btn-speed-medium"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">⏳
+          Média</button>
+        <button class="overlay-btn btn-speed" data-speed="3000" id="btn-speed-slow"
+          style="flex:1; font-size:14px; background:#555; padding:8px; border:2px solid transparent; transition:all 0.2s ease">🐌
+          Lenta</button>
+      </div>
+
+      <button class="btn-start" id="btn-start-ai" style="opacity:0.5;pointer-events:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
+        Iniciar Partida
+      </button>
+    </div>
+  </div>
+  <div class="screen hidden" id="screen-local">
+    <div class="lobby-card">
+      <button class="btn-back" id="btn-back-local">← Voltar</button>
+      <h2 class="local-title">Modo Local</h2>
+      <p class="lobby-subtitle" style="margin-top:-8px">2 jogadores na mesma tela</p>
+      <div class="lobby-divider"></div>
+      <div class="lobby-players">
+        <div class="lobby-player lobby-player-x">
+          <div class="lp-symbol x-symbol">X</div>
+          <div class="lp-field">
+            <label class="lp-label" for="input-x">Jogador X</label>
+            <input class="lp-input" id="input-x" type="text" maxlength="16" placeholder="Nome do Jogador X"
+              autocomplete="off" />
+          </div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="lobby-player lobby-player-o">
+          <div class="lp-field" style="text-align:right">
+            <label class="lp-label" for="input-o">Jogador O</label>
+            <input class="lp-input lp-input-right" id="input-o" type="text" maxlength="16"
+              placeholder="Nome do Jogador O" autocomplete="off" />
+          </div>
+          <div class="lp-symbol o-symbol">O</div>
+        </div>
+      </div>
+      <div class="versus-record hidden" id="local-versus-record"></div>
+      <button class="btn-start" id="btn-start-local">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
+        Iniciar Partida
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TELA 3 – LOBBY ONLINE (Criar/Entrar)
+  ══════════════════════════════════════ -->
+  <div class="screen hidden" id="screen-online">
+    <div class="lobby-card online-lobby-card">
+      <div class="online-header-center">
+        <button class="btn-back-pill" id="btn-back-online">← Voltar</button>
+        <h2 class="online-title-main">Modo Online</h2>
+        <p class="online-subtitle-spaced">Jogue com alguém em outra máquina</p>
+      </div>
+
+      <div class="online-card-section">
+        <h3 class="section-title">Ações Rápidas</h3>
+
+        <button class="btn-create-room-new" id="btn-create-room">
+          <span>✨</span> Criar Nova Sala
+        </button>
+
+        <div class="online-or-divider"><span>— ou —</span></div>
+        <p class="online-label-small">ENTRAR EM SALA POR CÓDIGO</p>
+
+        <div class="code-input-wrap-new">
+          <input class="code-input-new" id="input-room-code" type="text" maxlength="4" placeholder="X X X X"
+            autocomplete="off" spellcheck="false" />
+          <button class="btn-join-room-new" id="btn-join-room">Entrar</button>
+        </div>
+      </div>
+
+      <div class="online-card-section">
+        <h3 class="section-title">Salas Disponíveis</h3>
+        <div class="active-rooms-container" id="active-rooms-list">
+          <p class="empty-list-msg-new">Nenhuma sala criada no momento.</p>
+        </div>
+      </div>
+
+      <div class="online-card-section">
+        <h3 class="section-title">Jogadores Conectados</h3>
+        <div class="active-users-container" id="active-users-list">
+          <p class="empty-list-msg-new">Nenhum outro jogador online.</p>
+        </div>
+      </div>
+
+      <div class="online-status hidden" id="online-status">
+        <div class="status-spinner"></div>
+        <span id="online-status-text">Aguardando...</span>
+      </div>
+
+      <!-- Código da sala criada -->
+      <div class="room-code-display hidden" id="room-code-display">
+        <p class="room-code-label">Código da sua sala</p>
+        <div class="room-code-value" id="room-code-value">----</div>
+        <p class="room-code-hint">Compartilhe este código com seu amigo!</p>
+        <button class="btn-copy-code" id="btn-copy-code">📋 Copiar Código</button>
+      </div>
+
+      <p class="online-error hidden" id="online-error"></p>
+    </div>
+  </div>
+
+  <!-- Overlay para Convite de Partida -->
+  <div class="overlay hidden" id="overlay-match-invite" role="dialog" aria-modal="true">
+    <div class="overlay-card">
+      <div class="overlay-symbol">🎮</div>
+      <h2 class="overlay-title">Desafio Recebido!</h2>
+      <p class="overlay-msg" id="match-invite-msg">O jogador <strong>Maria</strong> está te convidando para uma partida.
+      </p>
+      <div class="overlay-actions">
+        <button class="overlay-btn" id="btn-accept-invite" style="background:var(--green)">✅ Aceitar</button>
+        <button class="btn-lobby" id="btn-decline-invite">❌ Recusar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay para Notificações Gerais -->
+  <div class="overlay hidden" id="overlay-notification" role="dialog" aria-modal="true" style="z-index: 9999;">
+    <div class="overlay-card">
+      <div class="overlay-symbol" id="notification-symbol">ℹ️</div>
+      <h2 class="overlay-title" id="notification-title">Aviso</h2>
+      <p class="overlay-msg" id="notification-msg">...</p>
+      <div class="overlay-actions">
+        <button class="btn-lobby" id="btn-close-notification" style="flex:1; background:var(--primary); color:#fff; border:none;">Entendi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay para Confirmar Desistência -->
+  <div class="overlay hidden" id="overlay-surrender" role="dialog" aria-modal="true">
+    <div class="overlay-card">
+      <div class="overlay-symbol">🏳️</div>
+      <h2 class="overlay-title">Abandonar Partida?</h2>
+      <p class="overlay-msg">Deseja realmente desistir? Isso dará a vitória ao adversário imediatamente.</p>
+      <div class="overlay-actions">
+        <button class="overlay-btn" id="btn-confirm-surrender" style="background:var(--x-color)">Sim, desistir</button>
+        <button class="btn-lobby" id="btn-cancel-surrender">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TELA 4 – JOGO
+  ══════════════════════════════════════ -->
+  <div class="screen hidden" id="screen-game">
+    <div class="container">
+      <header class="header">
+        <button class="btn-back" id="btn-back-game" title="Voltar ao lobby">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Lobby
+        </button>
+        <div class="header-center">
+          <h1 class="title">
+            <span class="title-main">Jogo da Velha</span>
+            <span class="title-badge">2</span>
+          </h1>
+          <p class="subtitle" id="game-mode-badge">Local</p>
+        </div>
+        <div style="position:relative; width:90px; display:flex; justify-content:flex-end; align-items:center;">
+          <button class="btn-restart" id="btn-show-emotes"
+            style="padding:6px 8px; font-size:12px; background:var(--surface); border:1px solid var(--border); width:100%; box-shadow:none; margin:0">
+            💬 Reações
+          </button>
+
+          <!-- Menu Popover de Emotes -->
+          <div class="emote-panel hidden" id="emote-panel"
+            style="top:120%; right:0; left:auto; bottom:auto; transform:none; width:300px;">
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:-4px;font-weight:bold;text-align:center;">
+              Emojis</div>
+            <div class="emote-row" style="display:flex; flex-wrap:nowrap; gap:6px;">
+              <button class="emote-btn" data-emote="🤣">🤣</button>
+              <button class="emote-btn" data-emote="😡">😡</button>
+              <button class="emote-btn" data-emote="😘">😘</button>
+              <button class="emote-btn" data-emote="🤯">🤯</button>
+              <button class="emote-btn" data-emote="🥱">🥱</button>
+            </div>
+            <div
+              style="font-size:12px;color:var(--text-light);margin-bottom:-4px;margin-top:4px;font-weight:bold;text-align:center;">
+              Frases Rápidas</div>
+            <div class="emote-row">
+              <button class="emote-btn text-emote" data-emote="Boa Jogada!">Boa Jogada!</button>
+              <button class="emote-btn text-emote" data-emote="Aja Paciência">Aja Paciência</button>
+              <button class="emote-btn text-emote" data-emote="Deu Mole!">Deu Mole!</button>
+            </div>
+            <div class="emote-row">
+              <button class="emote-btn text-emote" data-emote="Obrigado!">Obrigado!</button>
+              <button class="emote-btn text-emote" data-emote="Desistiu?">Desistiu?</button>
+              <button class="emote-btn text-emote" data-emote="Fácil demais!">Fácil demais!</button>
+            </div>
+            <div class="emote-row" style="margin-top:6px;">
+              <button class="emote-btn text-emote" data-emote="Talvez na Proxima">Talvez na Proxima</button>
+              <button class="emote-btn text-emote" data-emote="Chora não!">Chora não!</button>
+              <button class="emote-btn text-emote" data-emote="Cadê o nível?">Cadê o nível?</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="info-bar">
+        <div class="player-card" id="card-x" style="position:relative;">
+          <div class="emote-bubble" id="emote-bubble-x"></div>
+          <div class="player-symbol x-symbol">X</div>
+          <div class="player-info">
+            <span class="player-label">Jogador</span>
+            <span class="player-name" id="name-x-display">X</span>
+          </div>
+          <div class="score-badge" id="score-x">0</div>
+        </div>
+        <div class="turn-display">
+          <div class="turn-indicator" id="turn-indicator">
+            <span id="turn-text">Vez de <strong>X</strong></span>
+          </div>
+        </div>
+        <div class="player-card" id="card-o" style="position:relative;">
+          <div class="emote-bubble" id="emote-bubble-o"></div>
+          <div class="score-badge" id="score-o">0</div>
+          <div class="player-info" style="text-align:right">
+            <span class="player-label">Jogador</span>
+            <span class="player-name" id="name-o-display">O</span>
+          </div>
+          <div class="player-symbol o-symbol">O</div>
+        </div>
+      </div>
+
+      <div class="match-record hidden" id="match-record">Placar do confronto: 0 x 0</div>
+
+      <div class="status-bar" id="status-bar">
+        <span id="status-msg">Escolha qualquer tabuleiro para começar!</span>
+      </div>
+
+      <main class="main-board" id="main-board" role="grid" aria-label="Tabuleiro principal"></main>
+
+      <div class="controls" id="game-controls">
+        <!-- Botões principais -->
+        <button class="btn-restart" id="btn-suggest-draw">
+          🤝 Sugerir Empate
+        </button>
+      </div>
+
+      <div class="controls hidden" id="replay-controls" style="align-items:center;">
+        <button class="btn-restart" id="btn-replay-prev" style="flex:1">⬅️ Voltar</button>
+        <span id="replay-step-text" style="color:var(--text);font-weight:600;padding:0 15px;white-space:nowrap">0 /
+          0</span>
+        <button class="btn-restart" id="btn-replay-next" style="flex:1">Avançar ➡️</button>
+      </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div class="overlay hidden" id="overlay" role="dialog" aria-modal="true">
+      <div class="overlay-card">
+        <div class="overlay-symbol" id="overlay-symbol"></div>
+        <h2 class="overlay-title" id="overlay-title">Vitória!</h2>
+        <p class="overlay-msg" id="overlay-msg"></p>
+        <div class="overlay-actions">
+          <button class="btn-lobby" id="btn-lobby" style="flex:1">🏠 Voltar ao Lobby</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opponent Left Overlay -->
+    <div class="overlay hidden" id="overlay-left" role="dialog">
+      <div class="overlay-card">
+        <div class="overlay-symbol">😢</div>
+        <h2 class="overlay-title">Oponente saiu</h2>
+        <p class="overlay-msg" id="overlay-left-msg">Seu adversário desconectou da partida.</p>
+        <div class="overlay-actions">
+          <button class="btn-lobby" id="btn-lobby-left" style="flex:1">🏠 Ir ao Lobby</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Draw Request Overlay -->
+    <div class="overlay hidden" id="overlay-draw-request" role="dialog">
+      <div class="overlay-card">
+        <div class="overlay-symbol">🤝</div>
+        <h2 class="overlay-title">Empatar Partida?</h2>
+        <p class="overlay-msg">O seu adversário sugeriu um empate para a partida atual. Você aceita?</p>
+        <div class="overlay-actions">
+          <button class="overlay-btn" id="btn-accept-draw" style="background:var(--green)">✅ Aceitar</button>
+          <button class="btn-lobby" id="btn-decline-draw">❌ Recusar</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="legend">
+      <div class="legend-item"><span class="legend-dot active-dot"></span> Tabuleiro ativo</div>
+      <div class="legend-item"><span class="legend-dot x-dot"></span> Conquistado por X</div>
+      <div class="legend-item"><span class="legend-dot o-dot"></span> Conquistado por O</div>
+      <div class="legend-item"><span class="legend-dot draw-dot"></span> Empate</div>
+    </footer>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       CHAT PRIVADO FLUTUANTE
+  ══════════════════════════════════════ -->
+  <button class="private-chat-toggle hidden" id="private-chat-toggle" title="Abrir Chat">
+    💬
+    <span class="chat-badge hidden" id="chat-badge">0</span>
+  </button>
+
+  <div class="private-chat-panel hidden" id="private-chat-panel">
+    <div class="chat-header" style="flex-direction: column; align-items: stretch; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="chat-header-info">
+          <span class="chat-header-icon">💬</span>
+          <span class="chat-header-title">Chat Privado</span>
+        </div>
+        <button class="chat-close-btn" id="btn-close-chat">×</button>
+      </div>
+      <div class="chat-tabs-container" id="chat-tabs-container">
+        <!-- Abas renderizadas via JS -->
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty">Nenhuma mensagem ainda.</div>
+    </div>
+    <div class="chat-input-wrap">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Digite uma mensagem..." autocomplete="off">
+      <button class="chat-send-btn" id="btn-send-chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+
+</html>
