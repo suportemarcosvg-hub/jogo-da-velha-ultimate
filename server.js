@@ -38,7 +38,7 @@ const pairSchema = new mongoose.Schema({
     key: { type: String, unique: true },
     players: [String],
     playerKeys: [String],
-    wins: { type: Map, of: Number },
+    wins: { type: Object, default: {} },
     draws: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
     lastPlayed: Date,
