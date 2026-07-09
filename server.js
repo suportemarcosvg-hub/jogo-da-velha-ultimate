@@ -455,6 +455,10 @@ wss.on('connection', ws => {
                     const pending = pendingMatches.get(matchKey);
                     room.state = pending.state || pending;
                     room.moves = pending.moves || [];
+                    if (pending.pX && pending.pO) {
+                        room.players[0].symbol = (room.players[0].name === pending.pX) ? 'X' : 'O';
+                        room.players[1].symbol = (room.players[1].name === pending.pX) ? 'X' : 'O';
+                    }
                 } else {
                     const startingSymbol = await getStartingSymbolForPair(playerXName, playerOName);
                     room.state = createInitialGameState(startingSymbol);
@@ -465,7 +469,7 @@ wss.on('connection', ws => {
                 // Avisa ambos os jogadores e envia playerId pro joiner
                 send(room.players[0].ws, {
                     type: 'gameStart',
-                    symbol: 'X',
+                    symbol: room.players[0].symbol,
                     myName: room.players[0].name,
                     opponentName: room.players[1].name,
                     state: room.state,
@@ -473,7 +477,7 @@ wss.on('connection', ws => {
                 });
                 send(room.players[1].ws, {
                     type: 'gameStart',
-                    symbol: 'O',
+                    symbol: room.players[1].symbol,
                     myName: room.players[1].name,
                     opponentName: room.players[0].name,
                     state: room.state,
@@ -574,21 +578,28 @@ wss.on('connection', ws => {
 
                 let initialState;
                 let initialMoves = [];
+                let sSymbol = 'X';
+                let rSymbol = 'O';
                 if (pendingMatches.has(matchKey)) {
                     const pending = pendingMatches.get(matchKey);
                     initialState = pending.state || pending;
                     initialMoves = pending.moves || [];
+                    if (pending.pX && pending.pO) {
+                        sSymbol = (senderUser === pending.pX) ? 'X' : 'O';
+                        rSymbol = (responderUser === pending.pX) ? 'X' : 'O';
+                    }
                     pendingMatches.delete(matchKey);
                 } else {
-                    const startingSymbol = await getStartingSymbolForPair(senderUser, responderUser);
-                    initialState = createInitialGameState(startingSymbol);
+                    sSymbol = await getStartingSymbolForPair(senderUser, responderUser);
+                    rSymbol = sSymbol === 'X' ? 'O' : 'X';
+                    initialState = createInitialGameState(sSymbol);
                 }
 
                 const room = {
                     code,
                     players: [
-                        { ws: null, name: senderUser, symbol: 'X', id: pIdX, connected: false },
-                        { ws: null, name: responderUser, symbol: 'O', id: pIdO, connected: false }
+                        { ws: null, name: senderUser, symbol: sSymbol, id: pIdX, connected: false },
+                        { ws: null, name: responderUser, symbol: rSymbol, id: pIdO, connected: false }
                     ],
                     state: initialState,
                     started: true,
@@ -597,7 +608,7 @@ wss.on('connection', ws => {
                 
                 rooms.set(code, room);
                 resetRoomTimeout(room);
-                console.log(`[>] Jogo (convite) iniciado em "${code}": ${room.players[0].name}(X) vs ${room.players[1].name}(O) às ${new Date().toLocaleString('pt-BR')}`);
+                console.log(`[>] Jogo (convite) iniciado em "${code}": ${room.players[0].name}(${sSymbol}) vs ${room.players[1].name}(${rSymbol}) às ${new Date().toLocaleString('pt-BR')}`);
                 
                 // Conecta e redireciona ambos
                 if (senderSockets) {
@@ -605,7 +616,7 @@ wss.on('connection', ws => {
                         send(senderWs, {
                             type: 'inviteAcceptedRedirect',
                             code,
-                            symbol: 'X',
+                            symbol: sSymbol,
                             playerId: pIdX,
                             opponentName: responderUser
                         });
@@ -618,7 +629,7 @@ wss.on('connection', ws => {
                         send(respWs, {
                             type: 'inviteAcceptedRedirect',
                             code,
-                            symbol: 'O',
+                            symbol: rSymbol,
                             playerId: pIdO,
                             opponentName: senderUser
                         });
@@ -848,7 +859,9 @@ wss.on('connection', ws => {
                 
                 // Salva estado da partida pendente
                 const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
-                pendingMatches.set(matchKey, { state: st, moves: playerRoom.moves || [] });
+                const pXName = playerRoom.players.find(p => p.symbol === 'X')?.name;
+                const pOName = playerRoom.players.find(p => p.symbol === 'O')?.name;
+                pendingMatches.set(matchKey, { state: st, moves: playerRoom.moves || [], pX: pXName, pO: pOName });
 
                 broadcast(playerRoom, {
                     type: 'state',
@@ -966,7 +979,9 @@ wss.on('connection', ws => {
                 const p1 = room.players[1];
                 if (p0 && p1) {
                     const matchKey = pairKey(p0.name, p1.name);
-                    pendingMatches.set(matchKey, { state: room.state, moves: room.moves || [] });
+                    const pXName = room.players.find(p => p.symbol === 'X')?.name;
+                    const pOName = room.players.find(p => p.symbol === 'O')?.name;
+                    pendingMatches.set(matchKey, { state: room.state, moves: room.moves || [], pX: pXName, pO: pOName });
                     send(op.ws, { type: 'matchPausedRedirect' });
                 }
                 if (room.timeout) clearTimeout(room.timeout);
@@ -987,7 +1002,9 @@ wss.on('connection', ws => {
                 const p1 = room.players[1];
                 if (p0 && p1) {
                     const matchKey = pairKey(p0.name, p1.name);
-                    pendingMatches.set(matchKey, { state: room.state, moves: room.moves || [] });
+                    const pXName = room.players.find(p => p.symbol === 'X')?.name;
+                    const pOName = room.players.find(p => p.symbol === 'O')?.name;
+                    pendingMatches.set(matchKey, { state: room.state, moves: room.moves || [], pX: pXName, pO: pOName });
                 }
                 if (room.timeout) clearTimeout(room.timeout);
                 rooms.delete(room.code);
