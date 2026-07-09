@@ -943,20 +943,25 @@ function handleServerMessage(event) {
             const usersList = document.getElementById('active-users-list');
             if (usersList) {
                 const myName = getMyName();
-                const filteredUsers = msg.users.filter(u => u !== myName);
-                if (filteredUsers.length === 0) {
-                    usersList.innerHTML = '<p class="empty-list-msg-new">Nenhum outro jogador online.</p>';
+                if (msg.users.length === 0) {
+                    usersList.innerHTML = '<p class="empty-list-msg-new">Nenhum jogador online.</p>';
                 } else {
-                    usersList.innerHTML = filteredUsers.map(user => {
+                    usersList.innerHTML = msg.users.map(user => {
+                        const isMe = user === myName;
+                        const nameDisplay = isMe ? `${escapeHtml(user)} <span style="opacity:0.5; font-size:0.8em;">(Você)</span>` : escapeHtml(user);
+                        const actionButtons = isMe ? '' : `
+                                    <button class="btn-lobby-invite" onclick="invitePlayer('${escapeHtml(user)}', this)">🎮 Convidar</button>
+                                    <button class="btn-lobby-invite" style="background:var(--active-color);" onclick="openPrivateChat('${escapeHtml(user)}')">💬 Chat</button>
+                        `;
+
                         return `
                             <div class="lobby-user-item">
                                 <div class="user-info">
                                     <span class="user-avatar-small">👤</span>
-                                    <span class="user-name-small">${escapeHtml(user)}</span>
+                                    <span class="user-name-small">${nameDisplay}</span>
                                 </div>
                                 <div class="user-actions">
-                                    <button class="btn-lobby-invite" onclick="invitePlayer('${escapeHtml(user)}', this)">🎮 Convidar</button>
-                                    <button class="btn-lobby-invite" style="background:var(--active-color);" onclick="openPrivateChat('${escapeHtml(user)}')">💬 Chat</button>
+                                    ${actionButtons}
                                 </div>
                             </div>
                         `;
