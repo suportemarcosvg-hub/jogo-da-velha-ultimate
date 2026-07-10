@@ -881,7 +881,7 @@ function startAIGame() {
     let diffName = 'Fácil';
     if (window.aiDifficultySelected === 'medium') diffName = 'Médio';
     else if (window.aiDifficultySelected === 'hard') diffName = 'Difícil';
-    else if (window.aiDifficultySelected === 'super_hard') diffName = 'Impossível';
+    else if (window.aiDifficultySelected === 'super_hard') diffName = 'Super Difícil';
     const nameO = 'Máquina (' + diffName + ')';
     players = { X: nameX, O: nameO };
     currentPairScore = getLocalPairScore(nameX, nameO);
