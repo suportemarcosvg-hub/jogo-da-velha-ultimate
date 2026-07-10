@@ -333,6 +333,7 @@ function createInitialGameState(startingSymbol = 'X') {
         cells: Array.from({ length: 9 }, () => Array(9).fill(null)),
         macroBoard: Array(9).fill(null),
         currentPlayer: startingSymbol,
+        startingPlayer: startingSymbol,
         activeBoard: null,
         gameOver: false,
         winner: null,
@@ -871,10 +872,22 @@ wss.on('connection', ws => {
                 break;
             }
 
-            // ── Reiniciar ────────────────────────────────────────────────────────────
             case 'restart': {
                 if (!playerRoom) return;
-                playerRoom.state = createInitialGameState();
+                
+                const pXName = playerRoom.players.find(p => p.symbol === 'X')?.name || playerRoom.players[0].name;
+                const pOName = playerRoom.players.find(p => p.symbol === 'O')?.name || playerRoom.players[1].name;
+                const startingSymbol = await getStartingSymbolForPair(pXName, pOName);
+                
+                playerRoom.state = createInitialGameState(startingSymbol);
+                
+                const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
+                const pM = pendingMatches.get(matchKey);
+                if (pM) {
+                    pM.state = playerRoom.state;
+                    pM.moves = [];
+                }
+
                 broadcast(playerRoom, {
                     type: 'restart',
                     state: playerRoom.state,
