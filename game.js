@@ -663,6 +663,13 @@ function resetOnlineUI() {
     onlineStatus.classList.add('hidden');
     roomCodeDisplay.classList.add('hidden');
     onlineError.classList.add('hidden');
+    
+    const btnS = document.getElementById('btn-suggest-draw');
+    if (btnS) {
+        btnS.innerHTML = `🤝 Sugerir Empate`;
+        btnS.disabled = false;
+    }
+    
     const session = tryRestoreSession();
     document.getElementById('input-room-code').value = session ? session.code : '';
 
@@ -1066,6 +1073,11 @@ function handleServerMessage(event) {
             if (msg.playerId) {
                 saveSession(roomCode || document.getElementById('input-room-code').value.trim().toUpperCase(), msg.playerId, msg.symbol);
             }
+            const btnS = document.getElementById('btn-suggest-draw');
+            if (btnS) {
+                btnS.innerHTML = `🤝 Sugerir Empate`;
+                btnS.disabled = false;
+            }
             mySymbol = msg.symbol;
             mode = 'online';
             players = {
@@ -1096,6 +1108,11 @@ function handleServerMessage(event) {
             break;
 
         case 'rejoined':
+const btnSRejoin = document.getElementById('btn-suggest-draw');
+if (btnSRejoin) {
+    btnSRejoin.innerHTML = `🤝 Sugerir Empate`;
+    btnSRejoin.disabled = false;
+}
 mySymbol = msg.symbol;
 mode = 'online';
 players = {
