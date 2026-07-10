@@ -1849,24 +1849,52 @@ function simulateMove(st, bi, ci, player) {
     }
 }
 
+function evaluateLine(board, a, b, c) {
+    let oCount = 0;
+    let xCount = 0;
+    if (board[a] === 'O') oCount++; else if (board[a] === 'X') xCount++;
+    if (board[b] === 'O') oCount++; else if (board[b] === 'X') xCount++;
+    if (board[c] === 'O') oCount++; else if (board[c] === 'X') xCount++;
+
+    if (oCount > 0 && xCount === 0) {
+        if (oCount === 3) return 100;
+        if (oCount === 2) return 10;
+        if (oCount === 1) return 1;
+    }
+    if (xCount > 0 && oCount === 0) {
+        if (xCount === 3) return -100;
+        if (xCount === 2) return -10;
+        if (xCount === 1) return -1;
+    }
+    return 0;
+}
+
 function evaluateState(st) {
     if (st.gameOver) {
-        if (st.winner === 'O') return 10000;
-        if (st.winner === 'X') return -10000;
+        if (st.winner === 'O') return 1000000;
+        if (st.winner === 'X') return -1000000;
         return 0;
     }
     let score = 0;
+    
+    for (let i = 0; i < WIN_LINES.length; i++) {
+        const [a, b, c] = WIN_LINES[i];
+        score += evaluateLine(st.macroBoard, a, b, c) * 100;
+    }
+    
     for (let i = 0; i < 9; i++) {
-        if (st.macroBoard[i] === 'O') score += 100;
-        else if (st.macroBoard[i] === 'X') score -= 100;
-    }
-    for (let b = 0; b < 9; b++) {
-        if (st.macroBoard[b]) continue;
-        for (let c = 0; c < 9; c++) {
-            if (st.cells[b][c] === 'O') score += (c === 4 ? 3 : 1);
-            else if (st.cells[b][c] === 'X') score -= (c === 4 ? 3 : 1);
+        if (st.macroBoard[i] === 'O' || st.macroBoard[i] === 'X' || st.macroBoard[i] === 'draw') continue;
+        for (let j = 0; j < WIN_LINES.length; j++) {
+            const [a, b, c] = WIN_LINES[j];
+            score += evaluateLine(st.cells[i], a, b, c);
         }
+        if (st.cells[i][4] === 'O') score += 2;
+        else if (st.cells[i][4] === 'X') score -= 2;
     }
+    
+    if (st.macroBoard[4] === 'O') score += 150;
+    else if (st.macroBoard[4] === 'X') score -= 150;
+
     return score;
 }
 
