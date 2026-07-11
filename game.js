@@ -1794,16 +1794,20 @@ function calculateAIMove(st, difficulty) {
         depth = 4;
         if (moves.length > 30) depth = 3; 
     } else if (difficulty === 'super_hard') {
-        depth = 5;
-        if (moves.length > 35) depth = 4;
-        if (moves.length < 12) depth = 6;
+        depth = 6;
+        if (moves.length > 35) depth = 5;
+        if (moves.length < 12) depth = 7;
     }
 
     let bestScore = -Infinity;
     let bestMove = moves[0];
     
-    // Otimização: Aleatorizar ordem dos movimentos para evitar previsibilidade quando as pontuações são iguais
-    moves.sort(() => Math.random() - 0.5);
+    const cellScores = [3, 2, 3, 2, 4, 2, 3, 2, 3];
+    moves.sort((m1, m2) => {
+        let scoreDiff = cellScores[m2.c] - cellScores[m1.c];
+        if (scoreDiff === 0) return Math.random() - 0.5;
+        return scoreDiff;
+    });
 
     for (let m of moves) {
         let clonedState = cloneState(st);
@@ -1850,6 +1854,8 @@ function simulateMove(st, bi, ci, player) {
 }
 
 function evaluateLine(board, a, b, c) {
+    if (board[a] === 'draw' || board[b] === 'draw' || board[c] === 'draw') return 0;
+    
     let oCount = 0;
     let xCount = 0;
     if (board[a] === 'O') oCount++; else if (board[a] === 'X') xCount++;
@@ -1895,6 +1901,11 @@ function evaluateState(st) {
     if (st.macroBoard[4] === 'O') score += 150;
     else if (st.macroBoard[4] === 'X') score -= 150;
 
+    if (st.activeBoard === null) {
+        if (st.currentPlayer === 'O') score += 50;
+        else if (st.currentPlayer === 'X') score -= 50;
+    }
+
     return score;
 }
 
@@ -1904,6 +1915,9 @@ function minimax(st, depth, isMaximizing, alpha, beta) {
     }
     let moves = getValidMoves(st);
     if (moves.length === 0) return evaluateState(st);
+    
+    const cellScores = [3, 2, 3, 2, 4, 2, 3, 2, 3];
+    moves.sort((m1, m2) => cellScores[m2.c] - cellScores[m1.c]);
 
     if (isMaximizing) {
         let maxEval = -Infinity;
