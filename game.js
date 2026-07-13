@@ -873,6 +873,19 @@ aiSpeedBtns.forEach(btn => {
     });
 });
 
+// Lógica de Quem Começa a IA
+window.aiStarterSelected = 'player'; // Padrão: Jogador
+const aiStartBtns = document.querySelectorAll('.btn-ai-start');
+aiStartBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        aiStartBtns.forEach(b => {
+            b.style.borderColor = 'transparent';
+        });
+        btn.style.borderColor = 'var(--x-color)';
+        window.aiStarterSelected = btn.getAttribute('data-starter');
+    });
+});
+
 document.getElementById('btn-start-ai').addEventListener('click', startAIGame);
 
 function startAIGame() {
@@ -887,7 +900,7 @@ function startAIGame() {
     currentPairScore = getLocalPairScore(nameX, nameO);
     applyPairScoreToScoreboard();
     localMatchRecorded = false;
-    startingPlayer = 'X'; 
+    startingPlayer = window.aiStarterSelected === 'ai' ? 'O' : 'X'; 
     clearSession();
     initGame();
 }
