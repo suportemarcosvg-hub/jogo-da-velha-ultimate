@@ -2643,3 +2643,212 @@ body {
     z-index: 1;
 }
 
+/* ===== RESPONSIVIDADE PARA SMARTPHONES ===== */
+@media (max-width: 580px) {
+    /* 1. Estrutura Geral */
+    .screen {
+        padding: 12px 8px 24px;
+    }
+    
+    .container {
+        max-width: min(100vw - 16px, 480px);
+        gap: 12px;
+    }
+    
+    /* 2. Lobby e Auth */
+    .lobby-card {
+        padding: 24px 16px;
+        gap: 16px;
+        max-width: 100%;
+    }
+    
+    .lobby-logo {
+        gap: 10px;
+    }
+    
+    .logo-x, .logo-o {
+        font-size: 2.2rem;
+    }
+    
+    .logo-title, .logo-badge {
+        font-size: 1.4rem;
+    }
+    
+    .auth-tabs {
+        margin-bottom: 12px;
+    }
+    
+    .mode-buttons {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .mode-btn {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 14px 16px;
+        gap: 16px;
+        text-align: left;
+    }
+    
+    .mode-icon {
+        font-size: 1.8rem;
+    }
+    
+    .mode-info {
+        gap: 2px;
+    }
+    
+    /* 3. Configurações de Jogadores Local/IA */
+    .lobby-players {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .lobby-player {
+        width: 100%;
+        padding: 10px 14px;
+    }
+    
+    .vs-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+        margin: 2px 0;
+    }
+    
+    .lobby-player-o {
+        flex-direction: row;
+    }
+    
+    .lobby-player-o .lp-field {
+        text-align: left;
+    }
+    
+    .lp-input-right {
+        text-align: left;
+    }
+    
+    /* 4. Tabuleiro de Jogo */
+    .main-board {
+        padding: 8px;
+        gap: 6px;
+        border-radius: var(--radius-md);
+    }
+    
+    .mini-board {
+        padding: 4px;
+        gap: 2px;
+        min-height: auto; /* Remove altura mínima para aspect-ratio funcionar perfeitamente */
+        border-radius: var(--radius-sm);
+    }
+    
+    .cell {
+        font-size: clamp(0.9rem, 4vw, 1.4rem);
+        border-radius: 4px;
+    }
+    
+    /* 5. Barra de Informações do Jogo */
+    .info-bar {
+        gap: 6px;
+    }
+    
+    .player-card {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+    
+    .player-label {
+        display: none; /* Oculta "Jogador" para economizar espaço horizontal */
+    }
+    
+    .player-name {
+        font-size: 0.85rem;
+    }
+    
+    .player-symbol {
+        font-size: 1.3rem;
+    }
+    
+    .score-badge {
+        font-size: 1.1rem;
+        padding: 2px 6px;
+        min-width: 28px;
+    }
+    
+    .turn-display {
+        min-width: 70px;
+    }
+    
+    .turn-indicator {
+        padding: 6px 8px;
+        font-size: 0.72rem;
+        border-radius: var(--radius-sm);
+    }
+    
+    .status-bar {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+    }
+    
+    .controls {
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .btn-restart {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        border-radius: var(--radius-sm);
+    }
+    
+    /* 6. Modais Overlays */
+    .overlay-card {
+        padding: 24px 20px;
+        width: 95%;
+    }
+    
+    .overlay-symbol {
+        font-size: 3.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .overlay-title {
+        font-size: 1.5rem;
+    }
+    
+    .overlay-msg {
+        font-size: 0.88rem;
+        margin-bottom: 20px;
+    }
+    
+    /* 7. Chat e Emotes Mobile */
+    .private-chat-panel {
+        width: calc(100vw - 20px);
+        right: 10px;
+        bottom: 80px;
+        left: 10px;
+    }
+    
+    .private-chat-toggle {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .emote-panel {
+        width: 260px;
+    }
+    
+    /* 8. Rodapé e Legendas */
+    .legend {
+        gap: 10px;
+    }
+    
+    .legend-item {
+        font-size: 0.7rem;
+    }
+}
+
