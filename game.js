@@ -648,6 +648,11 @@ document.getElementById('btn-logout').addEventListener('click', () => {
     logoutUser();
 });
 
+document.getElementById('btn-show-stats').addEventListener('click', showProfileStats);
+document.getElementById('btn-close-stats').addEventListener('click', () => {
+    document.getElementById('overlay-stats').classList.add('hidden');
+});
+
 document.getElementById('btn-refresh-history').addEventListener('click', () => {
     cacheHistoryData = null;
     renderHistory();
@@ -2242,4 +2247,105 @@ if (chatInput) {
     chatInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') sendPrivateChatMessage();
     });
+}
+
+// ── Estatísticas de Perfil ────────────────────────────────────────────────────
+async function showProfileStats() {
+    const overlay = document.getElementById('overlay-stats');
+    const nameEl = document.getElementById('stats-player-name');
+    if (!overlay) return;
+
+    // Elementos visuais
+    const totalEl = document.getElementById('stat-total-matches');
+    const winsEl = document.getElementById('stat-wins');
+    const lossesEl = document.getElementById('stat-losses');
+    const drawsEl = document.getElementById('stat-draws');
+    const winrateEl = document.getElementById('stat-winrate');
+    const winrateBar = document.getElementById('stat-winrate-bar');
+    const streakEl = document.getElementById('stat-streak');
+
+    overlay.classList.remove('hidden');
+
+    let user = currentUser || 'Jogador Local';
+    nameEl.textContent = user;
+
+    let total = 0, wins = 0, losses = 0, draws = 0, streak = 0;
+
+    if (currentUser) {
+        // MODO ONLINE
+        // Busca do servidor ou utiliza cache existente
+        const pairs = await fetchServerHistory(currentUser);
+        const matches = await fetchServerMatches(currentUser);
+
+        // Calcula com base nos registros Pair
+        pairs.forEach(pair => {
+            const playersList = pair.players || [];
+            const opponent = playersList.find(n => playerKey(n) !== playerKey(currentUser)) || 'Adversário';
+            
+            const uWins = pair.wins?.[currentUser] || 0;
+            const opWins = pair.wins?.[opponent] || 0;
+            const pDraws = pair.draws || 0;
+
+            wins += uWins;
+            losses += opWins;
+            draws += pDraws;
+            total += uWins + opWins + pDraws;
+        });
+
+        // Calcula a sequência atual (Streak) com base nos replays (Matches recentes - ordenados por data decrescente)
+        for (let m of matches) {
+            if (m.winner === currentUser) {
+                streak++;
+            } else {
+                break; // Qualquer derrota ou empate quebra a sequência de vitórias consecutivas
+            }
+        }
+    } else {
+        // MODO LOCAL
+        const history = loadLocalHistory();
+        const pairs = Object.values(history.pairs || {});
+        
+        pairs.forEach(pair => {
+            const ordered = pair.players || [];
+            const nameX = ordered[0];
+            const nameO = ordered[1];
+
+            const currentLocalUser = cleanPlayerName(document.getElementById('input-x').value, 'Jogador X');
+            const opponent = cleanPlayerName(document.getElementById('input-o').value, 'Jogador O');
+
+            const uWins = pair.wins?.[currentLocalUser] || 0;
+            const opWins = pair.wins?.[opponent] || 0;
+            const pDraws = pair.draws || 0;
+
+            wins += uWins;
+            losses += opWins;
+            draws += pDraws;
+            total += uWins + opWins + pDraws;
+        });
+
+        const currentLocalUser = cleanPlayerName(document.getElementById('input-x').value, 'Jogador X');
+        nameEl.textContent = `${currentLocalUser} (Local)`;
+
+        // Streak no modo local
+        const matches = history.matches || [];
+        for (let m of matches) {
+            if (m.winner === currentLocalUser) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Atualiza o DOM
+    totalEl.textContent = total;
+    winsEl.textContent = wins;
+    lossesEl.textContent = losses;
+    drawsEl.textContent = draws;
+
+    const rate = total > 0 ? Math.round((wins / total) * 100) : 0;
+    winrateEl.textContent = `${rate}%`;
+    if (winrateBar) winrateBar.style.width = `${rate}%`;
+
+    streakEl.textContent = `🔥 ${streak}`;
 }
