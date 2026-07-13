@@ -417,34 +417,43 @@
         <p class="online-subtitle-spaced">Jogue com alguém em outra máquina</p>
       </div>
 
-      <div class="online-card-section">
-        <h3 class="section-title">Ações Rápidas</h3>
+      <!-- Abas de Navegação Online -->
+      <div class="online-tabs" id="online-lobby-tabs" style="display: flex; width: 100%; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <button class="online-tab-btn active" id="tab-online-play" style="flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; border-radius: var(--radius-sm);">🎮 Jogar</button>
+        <button class="online-tab-btn" id="tab-online-users" style="flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; border-radius: var(--radius-sm);">👥 Jogadores</button>
+      </div>
 
-        <button class="btn-create-room-new" id="btn-create-room">
-          <span>✨</span> Criar Nova Sala
-        </button>
+      <!-- Aba 1: Jogar (Criar, Código e Salas) -->
+      <div class="online-panel-content" id="panel-online-play" style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
+        <div class="online-card-section">
+          <h3 class="section-title">Ações Rápidas</h3>
+          <button class="btn-create-room-new" id="btn-create-room">
+            <span>✨</span> Criar Nova Sala
+          </button>
+          <div class="online-or-divider"><span>— ou —</span></div>
+          <p class="online-label-small">ENTRAR EM SALA POR CÓDIGO</p>
+          <div class="code-input-wrap-new">
+            <input class="code-input-new" id="input-room-code" type="text" maxlength="4" placeholder="X X X X"
+              autocomplete="off" spellcheck="false" />
+            <button class="btn-join-room-new" id="btn-join-room">Entrar</button>
+          </div>
+        </div>
 
-        <div class="online-or-divider"><span>— ou —</span></div>
-        <p class="online-label-small">ENTRAR EM SALA POR CÓDIGO</p>
-
-        <div class="code-input-wrap-new">
-          <input class="code-input-new" id="input-room-code" type="text" maxlength="4" placeholder="X X X X"
-            autocomplete="off" spellcheck="false" />
-          <button class="btn-join-room-new" id="btn-join-room">Entrar</button>
+        <div class="online-card-section">
+          <h3 class="section-title">Salas Disponíveis</h3>
+          <div class="active-rooms-container" id="active-rooms-list">
+            <p class="empty-list-msg-new">Nenhuma sala criada no momento.</p>
+          </div>
         </div>
       </div>
 
-      <div class="online-card-section">
-        <h3 class="section-title">Salas Disponíveis</h3>
-        <div class="active-rooms-container" id="active-rooms-list">
-          <p class="empty-list-msg-new">Nenhuma sala criada no momento.</p>
-        </div>
-      </div>
-
-      <div class="online-card-section">
-        <h3 class="section-title">Jogadores Conectados</h3>
-        <div class="active-users-container" id="active-users-list">
-          <p class="empty-list-msg-new">Nenhum outro jogador online.</p>
+      <!-- Aba 2: Jogadores Conectados -->
+      <div class="online-panel-content hidden" id="panel-online-users" style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
+        <div class="online-card-section">
+          <h3 class="section-title">Jogadores Conectados</h3>
+          <div class="active-users-container" id="active-users-list">
+            <p class="empty-list-msg-new">Nenhum outro jogador online.</p>
+          </div>
         </div>
       </div>
 
@@ -453,12 +462,16 @@
         <span id="online-status-text">Aguardando...</span>
       </div>
 
-      <!-- Código da sala criada -->
-      <div class="room-code-display hidden" id="room-code-display">
-        <p class="room-code-label">Código da sua sala</p>
+      <!-- Código da sala criada (Tela de Espera Exclusiva) -->
+      <div class="room-code-display hidden" id="room-code-display" style="width: 100%; display: flex; flex-direction: column; gap: 15px; text-align: center;">
+        <div class="status-spinner" style="width:36px; height:36px; margin:0 auto 5px;"></div>
+        <p class="room-code-label" style="font-weight: 700; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--text-muted);">Aguardando oponente...</p>
         <div class="room-code-value" id="room-code-value">----</div>
-        <p class="room-code-hint">Compartilhe este código com seu amigo!</p>
-        <button class="btn-copy-code" id="btn-copy-code">📋 Copiar Código</button>
+        <p class="room-code-hint" style="font-size: 0.85rem; color: var(--text-muted);">Compartilhe o código acima para o seu adversário entrar na partida.</p>
+        <div style="display:flex; gap: 8px; margin-top: 10px;">
+          <button class="btn-copy-code" id="btn-copy-code" style="flex:1; background: var(--surface-3); font-weight: 700;">📋 Copiar</button>
+          <button class="btn-lobby" id="btn-cancel-room" style="flex:1; border-color: var(--x-color); color: var(--x-color); font-weight: 700;">❌ Cancelar</button>
+        </div>
       </div>
 
       <p class="online-error hidden" id="online-error"></p>

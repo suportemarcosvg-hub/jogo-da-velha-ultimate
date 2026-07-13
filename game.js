@@ -689,6 +689,11 @@ function resetOnlineUI() {
     roomCodeDisplay.classList.add('hidden');
     onlineError.classList.add('hidden');
     
+    // Mostra as abas e ativa a aba padrão "Jogar"
+    const lobbyTabs = document.getElementById('online-lobby-tabs');
+    if (lobbyTabs) lobbyTabs.classList.remove('hidden');
+    switchOnlineTab('play');
+    
     const btnS = document.getElementById('btn-suggest-draw');
     if (btnS) {
         btnS.innerHTML = `🤝 Sugerir Empate`;
@@ -702,6 +707,29 @@ function resetOnlineUI() {
     connectWS(() => {
         wsSend({ type: 'enterLobby', name: getMyName() });
     });
+}
+
+function switchOnlineTab(tab) {
+    const tabPlay = document.getElementById('tab-online-play');
+    const tabUsers = document.getElementById('tab-online-users');
+    const panelPlay = document.getElementById('panel-online-play');
+    const panelUsers = document.getElementById('panel-online-users');
+    
+    if (!tabPlay || !tabUsers || !panelPlay || !panelUsers) return;
+    
+    // Reseta classes active
+    tabPlay.classList.remove('active');
+    tabUsers.classList.remove('active');
+    
+    if (tab === 'play') {
+        tabPlay.classList.add('active');
+        panelPlay.classList.remove('hidden');
+        panelUsers.classList.add('hidden');
+    } else {
+        tabUsers.classList.add('active');
+        panelPlay.classList.add('hidden');
+        panelUsers.classList.remove('hidden');
+    }
 }
 
 function getMyName() {
@@ -818,8 +846,15 @@ document.getElementById('btn-copy-code').addEventListener('click', () => {
     navigator.clipboard.writeText(roomCodeValue.textContent).then(() => {
         const btn = document.getElementById('btn-copy-code');
         btn.textContent = '✅ Copiado!';
-        setTimeout(() => { btn.textContent = '📋 Copiar Código'; }, 2000);
+        setTimeout(() => { btn.textContent = '📋 Copiar'; }, 2000);
     });
+});
+
+// Eventos de abas e cancelamento do Lobby Online
+document.getElementById('tab-online-play').addEventListener('click', () => switchOnlineTab('play'));
+document.getElementById('tab-online-users').addEventListener('click', () => switchOnlineTab('users'));
+document.getElementById('btn-cancel-room').addEventListener('click', () => {
+    reconnectToLobby();
 });
 
 document.getElementById('btn-start-local').addEventListener('click', startLocalGame);
@@ -1128,6 +1163,15 @@ function handleServerMessage(event) {
             saveSession(msg.code, msg.playerId, 'X');
             roomCode = msg.code;
             roomCodeValue.textContent = msg.code;
+            
+            // Oculta abas e painéis online, mostrando apenas o card de código de espera
+            const tabs = document.getElementById('online-lobby-tabs');
+            const panelPlay = document.getElementById('panel-online-play');
+            const panelUsers = document.getElementById('panel-online-users');
+            if (tabs) tabs.classList.add('hidden');
+            if (panelPlay) panelPlay.classList.add('hidden');
+            if (panelUsers) panelUsers.classList.add('hidden');
+            
             roomCodeDisplay.classList.remove('hidden');
             onlineStatusText.textContent = 'Aguardando o oponente...';
             mySymbol = 'X';
@@ -1139,7 +1183,8 @@ function handleServerMessage(event) {
             currentPairScore = { X: 0, O: 0, draws: 0, total: 0 };
             applyPairScoreToScoreboard();
             state = msg.state || createInitialGameState('X');
-            showScreen('game');
+            
+            // Não joga para a tela de jogo ainda, mantém no lobby online de espera
             buildBoard();
             renderAll();
             updateStatus(`Sala criada! Aguardando oponente... Código: ${msg.code}`);
