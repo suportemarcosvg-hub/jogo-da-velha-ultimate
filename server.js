@@ -412,7 +412,8 @@ function createInitialGameState(startingSymbol = 'X') {
         winner: null,
         winLine: null,
         matchRecorded: false,
-        startTime: Date.now()
+        startTime: Date.now(),
+        lastMove: null
     };
 }
 
@@ -865,6 +866,7 @@ wss.on('connection', ws => {
 
                 // Aplica jogada
                 st.cells[boardIdx][cellIdx] = sym;
+                st.lastMove = { boardIdx, cellIdx };
                 if (!playerRoom.moves) playerRoom.moves = [];
                 playerRoom.moves.push({ player: sym, boardIdx, cellIdx });
 

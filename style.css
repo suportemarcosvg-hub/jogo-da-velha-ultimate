@@ -2635,3 +2635,11 @@ body {
     text-align: center;
 }
 
+/* ===== ÚLTIMO LANCE HIGHLIGHT ===== */
+.cell.last-move {
+    border: 2px dashed var(--active-color) !important;
+    box-shadow: 0 0 12px var(--active-glow) !important;
+    transform: scale(1.02);
+    z-index: 1;
+}
+

@@ -47,7 +47,8 @@ function createInitialState(firstPlayer) {
         gameOver: false,
         winner: null,
         winLine: null,
-        matchRecorded: false
+        matchRecorded: false,
+        lastMove: null
     };
 }
 
@@ -1378,6 +1379,7 @@ document.getElementById('btn-replay-prev').addEventListener('click', () => {
         for (let i = 0; i < currentReplayIndex; i++) {
             const m = currentReplayMoves[i];
             state.cells[m.boardIdx][m.cellIdx] = m.player;
+            state.lastMove = { boardIdx: m.boardIdx, cellIdx: m.cellIdx };
             const miniResult = checkWinner(state.cells[m.boardIdx]);
             if (miniResult) state.macroBoard[m.boardIdx] = typeof miniResult === 'object' ? miniResult.winner : miniResult;
             const macroResult = checkWinner(state.macroBoard);
@@ -1640,7 +1642,7 @@ function renderBoard() {
 
         mb.querySelectorAll('.cell').forEach((cellEl, ci) => {
             const val = state.cells[bi][ci];
-            cellEl.classList.remove('x-cell', 'o-cell', 'taken', 'not-my-turn', 'winner');
+            cellEl.classList.remove('x-cell', 'o-cell', 'taken', 'not-my-turn', 'winner', 'last-move');
             cellEl.innerHTML = '';
             if (val) {
                 const mark = document.createElement('span');
@@ -1648,6 +1650,10 @@ function renderBoard() {
                 mark.textContent = val;
                 cellEl.appendChild(mark);
                 cellEl.classList.add('taken', val === 'X' ? 'x-cell' : 'o-cell');
+            }
+
+            if (state.lastMove && state.lastMove.boardIdx === bi && state.lastMove.cellIdx === ci) {
+                cellEl.classList.add('last-move');
             }
 
             if (mode === 'online' && !val && state.currentPlayer !== mySymbol) {
@@ -1727,6 +1733,7 @@ function handleCellClick(e) {
 function applyMove(bi, ci) {
     const sym = state.currentPlayer;
     state.cells[bi][ci] = sym;
+    state.lastMove = { boardIdx: bi, cellIdx: ci };
 
     const miniResult = checkWinner(state.cells[bi]);
     if (miniResult) state.macroBoard[bi] = typeof miniResult === 'object' ? miniResult.winner : miniResult;
