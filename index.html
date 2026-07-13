@@ -244,28 +244,6 @@
 
       <!-- Conteúdo do Lobby (visível apenas após login) -->
       <div id="lobby-content" class="hidden">
-        <!-- Histórico de partidas (Confrontos) -->
-        <div class="history-panel" id="history-panel">
-          <div class="history-head">
-            <span>Confrontos</span>
-            <button class="history-refresh" id="btn-refresh-history" title="Atualizar histórico">↻</button>
-          </div>
-          <div class="history-list" id="history-list">
-            <p class="history-empty">Nenhuma partida encontrada.</p>
-          </div>
-        </div>
-
-        <!-- Replays de partidas -->
-        <div class="history-panel" id="matches-panel" style="margin-top:20px;">
-          <div class="history-head">
-            <span>Últimas Partidas (Replays)</span>
-            <button class="history-refresh" id="btn-refresh-matches" title="Atualizar partidas">↻</button>
-          </div>
-          <div class="history-list" id="matches-list">
-            <p class="history-empty">Nenhum replay disponível ainda.</p>
-          </div>
-        </div>
-
         <!-- Escolha do modo -->
         <div class="mode-buttons" id="mode-buttons-wrap">
           <button class="mode-btn mode-local" id="btn-mode-local">
@@ -289,6 +267,28 @@
               <span class="mode-desc">Criar ou<br>entrar em sala</span>
             </div>
           </button>
+        </div>
+
+        <!-- Histórico de partidas (Confrontos) -->
+        <div class="history-panel" id="history-panel" style="margin-top:20px;">
+          <div class="history-head">
+            <span>Confrontos</span>
+            <button class="history-refresh" id="btn-refresh-history" title="Atualizar histórico">↻</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <p class="history-empty">Nenhuma partida encontrada.</p>
+          </div>
+        </div>
+
+        <!-- Replays de partidas -->
+        <div class="history-panel" id="matches-panel" style="margin-top:20px;">
+          <div class="history-head">
+            <span>Últimas Partidas (Replays)</span>
+            <button class="history-refresh" id="btn-refresh-matches" title="Atualizar partidas">↻</button>
+          </div>
+          <div class="history-list" id="matches-list">
+            <p class="history-empty">Nenhum replay disponível ainda.</p>
+          </div>
         </div>
       </div>
 
