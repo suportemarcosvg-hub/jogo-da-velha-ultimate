@@ -31,6 +31,9 @@ let localMatchRecorded = false;
 let currentReplayMoves = [];
 let currentReplayIndex = 0;
 let disconnectInterval = null;
+let cacheHistoryData = null;
+let cacheMatchesData = null;
+let inviteTimerInterval = null;
 
 const LOGIN_KEY = 'tictactoe2_current_user';
 const LOCAL_HISTORY_KEY = 'tictactoe2_match_history';
@@ -279,11 +282,13 @@ function showAuthError(msg) {
 }
 
 async function fetchServerHistory(playerName) {
+    if (cacheHistoryData) return cacheHistoryData;
     try {
         const res = await fetch(`/api/history?player=${encodeURIComponent(playerName)}`);
         if (!res.ok) return [];
         const data = await res.json();
-        return data.pairs || [];
+        cacheHistoryData = data.pairs || [];
+        return cacheHistoryData;
     } catch (e) {
         return [];
     }
@@ -335,11 +340,13 @@ async function renderHistory() {
 }
 
 async function fetchServerMatches(playerName) {
+    if (cacheMatchesData) return cacheMatchesData;
     try {
         const res = await fetch(`/api/matches?player=${encodeURIComponent(playerName)}`);
         if (!res.ok) return [];
         const data = await res.json();
-        return data.matches || [];
+        cacheMatchesData = data.matches || [];
+        return cacheMatchesData;
     } catch (e) {
         return [];
     }
@@ -640,8 +647,14 @@ document.getElementById('btn-logout').addEventListener('click', () => {
     logoutUser();
 });
 
-document.getElementById('btn-refresh-history').addEventListener('click', renderHistory);
-document.getElementById('btn-refresh-matches').addEventListener('click', renderMatches);
+document.getElementById('btn-refresh-history').addEventListener('click', () => {
+    cacheHistoryData = null;
+    renderHistory();
+});
+document.getElementById('btn-refresh-matches').addEventListener('click', () => {
+    cacheMatchesData = null;
+    renderMatches();
+});
 
 // ── DOM – Lobby principal ─────────────────────────────────────────────────────
 
@@ -1058,6 +1071,36 @@ function handleServerMessage(event) {
             if (overlayInvite) {
                 overlayInvite.classList.remove('hidden');
                 window.currentInviteSender = msg.sender;
+                
+                // Configura o timer regressivo do convite (30 segundos)
+                if (inviteTimerInterval) clearInterval(inviteTimerInterval);
+                let timeRemaining = 30;
+                const timerText = document.getElementById('invite-timer-text');
+                const progressBar = document.getElementById('invite-countdown-progress');
+                
+                if (timerText) timerText.textContent = `Tempo restante: ${timeRemaining}s`;
+                if (progressBar) {
+                    progressBar.style.transition = 'none';
+                    progressBar.style.transform = 'scaleX(1)';
+                    // Força reflow
+                    progressBar.offsetHeight;
+                    progressBar.style.transition = 'transform 30s linear';
+                    progressBar.style.transform = 'scaleX(0)';
+                }
+                
+                inviteTimerInterval = setInterval(() => {
+                    timeRemaining--;
+                    if (timerText) timerText.textContent = `Tempo restante: ${timeRemaining}s`;
+                    
+                    if (timeRemaining <= 0) {
+                        clearInterval(inviteTimerInterval);
+                        inviteTimerInterval = null;
+                        
+                        // Simula o clique em recusar convite por expiração de tempo
+                        const declineBtn = document.getElementById('btn-decline-invite');
+                        if (declineBtn) declineBtn.click();
+                    }
+                }, 1000);
             }
             break;
         }
@@ -1131,6 +1174,9 @@ function handleServerMessage(event) {
             } else {
                 renderAll();
                 updateTurnStatus();
+                // Exibe o banner "Quem Começa"
+                const starterName = state.currentPlayer === 'X' ? players.X : players.O;
+                showStartMatchBanner(starterName);
             }
             document.getElementById('game-mode-badge').textContent = '🌐 ' + (roomCode || msg.code || 'Online');
             break;
@@ -1281,6 +1327,9 @@ break;
             buildBoard();
             renderAll();
             updateTurnStatus();
+            // Exibe o banner "Quem Começa"
+            const restartStarter = state.currentPlayer === 'X' ? players.X : players.O;
+            showStartMatchBanner(restartStarter);
             break;
 
         case 'error':
@@ -1484,6 +1533,7 @@ document.getElementById('btn-cancel-surrender').addEventListener('click', () => 
 
 // Respostas ao convite de partida
 document.getElementById('btn-accept-invite').addEventListener('click', () => {
+    if (inviteTimerInterval) { clearInterval(inviteTimerInterval); inviteTimerInterval = null; }
     document.getElementById('overlay-match-invite').classList.add('hidden');
     if (window.currentInviteSender) {
         wsSend({ type: 'inviteResponse', sender: window.currentInviteSender, accepted: true });
@@ -1491,12 +1541,26 @@ document.getElementById('btn-accept-invite').addEventListener('click', () => {
     }
 });
 document.getElementById('btn-decline-invite').addEventListener('click', () => {
+    if (inviteTimerInterval) { clearInterval(inviteTimerInterval); inviteTimerInterval = null; }
     document.getElementById('overlay-match-invite').classList.add('hidden');
     if (window.currentInviteSender) {
         wsSend({ type: 'inviteResponse', sender: window.currentInviteSender, accepted: false });
         window.currentInviteSender = null;
     }
 });
+
+function showStartMatchBanner(playerName) {
+    const banner = document.getElementById('start-match-banner');
+    const nameEl = document.getElementById('banner-player-name');
+    if (!banner || !nameEl) return;
+    
+    nameEl.textContent = playerName;
+    banner.classList.add('show');
+    
+    setTimeout(() => {
+        banner.classList.remove('show');
+    }, 2000);
+}
 
 // ── Jogo local – inicialização ────────────────────────────────────────────────
 
@@ -1519,6 +1583,9 @@ function initGame() {
     buildBoard();
     renderAll();
     updateStatus(`${players[startingPlayer]} começa! Escolha qualquer tabuleiro.`);
+    
+    // Exibe o banner "Quem Começa"
+    showStartMatchBanner(players[startingPlayer]);
     
     if (mode === 'ai' && startingPlayer === 'O') {
         setTimeout(playAITurn, 600);
@@ -1755,8 +1822,14 @@ function handleGameOver(result, skipAnimation = false) {
         if ((mode === 'local' || mode === 'ai') && !localMatchRecorded) {
             localMatchRecorded = true;
             recordLocalMatch(result);
+            // Limpa o cache para que ao voltar ao lobby os históricos e replays estejam atualizados
+            cacheHistoryData = null;
+            cacheMatchesData = null;
         } else {
             applyPairScoreToScoreboard();
+            // Limpa o cache para atualizar o lobby online
+            cacheHistoryData = null;
+            cacheMatchesData = null;
         }
 
         scoreXEl.textContent = scoreX;

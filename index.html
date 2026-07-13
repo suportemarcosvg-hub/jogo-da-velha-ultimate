@@ -469,9 +469,15 @@
     <div class="overlay-card">
       <div class="overlay-symbol">🎮</div>
       <h2 class="overlay-title">Desafio Recebido!</h2>
-      <p class="overlay-msg" id="match-invite-msg">O jogador <strong>Maria</strong> está te convidando para uma partida.
-      </p>
-      <div class="overlay-actions">
+      <p class="overlay-msg" id="match-invite-msg">O jogador <strong>Maria</strong> está te convidando para uma partida.</p>
+      
+      <!-- Barra de progresso e texto do timer de expiração do convite -->
+      <div class="invite-countdown-bar">
+        <div class="invite-countdown-progress" id="invite-countdown-progress"></div>
+      </div>
+      <div class="invite-timer-text" id="invite-timer-text">Tempo restante: 30s</div>
+
+      <div class="overlay-actions" style="margin-top: 20px;">
         <button class="overlay-btn" id="btn-accept-invite" style="background:var(--green)">✅ Aceitar</button>
         <button class="btn-lobby" id="btn-decline-invite">❌ Recusar</button>
       </div>
@@ -690,6 +696,12 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z" /></svg>
       </button>
     </div>
+  </div>
+
+  <!-- Banner temporário flutuante para mostrar quem começa a partida -->
+  <div class="start-match-banner" id="start-match-banner">
+    <div class="banner-title">Quem Começa</div>
+    <div class="banner-player-name" id="banner-player-name">Jogador X</div>
   </div>
 
   <script src="game.js"></script>
