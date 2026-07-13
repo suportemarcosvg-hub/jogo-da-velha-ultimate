@@ -3,4 +3,7 @@ node_modules/
 users.json
 match-history.json
 pending_matches.json
+pending-matches.json
+server.backup.js
+*.backup.js
 .env

@@ -11,6 +11,10 @@ const WebSocket = require('ws');
 const path = require('path');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+
+const BCRYPT_ROUNDS = 12;
 
 
 const PORT = process.env.PORT || 2026;
@@ -53,10 +57,30 @@ const matchSchema = new mongoose.Schema({
     winner: String,
     moves: Array
 });
+// Alias virtual para compatibilidade com o cliente (usa m.playedAt)
+matchSchema.virtual('playedAt').get(function () { return this.date; });
+matchSchema.set('toJSON', { virtuals: true });
 const Match = mongoose.model('Match', matchSchema);
 
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
+/** Verifica se o hash é bcrypt (começa com $2b$ ou $2a$) */
+function isBcryptHash(hash) {
+    return typeof hash === 'string' && (hash.startsWith('$2b$') || hash.startsWith('$2a$'));
+}
+
+/** Hash legado SHA-256 — mantido apenas para migração de contas antigas */
+function sha256Hash(value) {
+    return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+/** Verifica senha suportando hash antigo (SHA-256) e novo (bcrypt) */
+async function verifyPassword(plain, hash) {
+    if (isBcryptHash(hash)) return bcrypt.compare(plain, hash);
+    return sha256Hash(plain) === hash; // fallback legado
+}
+
+/** Gera hash bcrypt seguro */
+async function hashPassword(value) {
+    return bcrypt.hash(value, BCRYPT_ROUNDS);
 }
 
 function cleanName(name) {
@@ -179,6 +203,15 @@ async function formatPairScore(nameX, nameO) {
     };
 }
 
+// ── Rate Limiting para rotas de autenticação ─────────────────────────────────
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 20,                   // máx 20 tentativas por IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas. Aguarde 15 minutos antes de tentar novamente.' }
+});
+
 app.get('/api/history', async (req, res) => {
     const player = cleanName(req.query.player || '');
     const key = playerKey(player);
@@ -197,7 +230,7 @@ app.get('/api/matches', async (req, res) => {
     res.json({ player, matches });
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
     const { username, password, securityQuestion, securityAnswer } = req.body;
     if (!username || !password || !securityQuestion || !securityAnswer) return res.status(400).json({ error: 'Todos os campos (incluindo pergunta de segurança) são obrigatórios.' });
     const cleanU = cleanName(username);
@@ -212,24 +245,32 @@ app.post('/api/register', async (req, res) => {
     const user = new User({
         username: cleanU,
         key: key,
-        passwordHash: hashPassword(password),
+        passwordHash: await hashPassword(password),
         securityQuestion: securityQuestion,
-        securityAnswerHash: hashPassword(securityAnswer.trim().toLowerCase()),
+        securityAnswerHash: await hashPassword(securityAnswer.trim().toLowerCase()),
         createdAt: new Date()
     });
     await user.save();
     res.json({ success: true, username: cleanU });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
     const key = playerKey(username);
     const user = await User.findOne({ key });
 
-    if (!user || user.passwordHash !== hashPassword(password)) {
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
         return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
     }
+
+    // Migração gradual: se ainda usa SHA-256, reHasheia com bcrypt
+    if (!isBcryptHash(user.passwordHash)) {
+        user.passwordHash = await hashPassword(password);
+        await user.save();
+        console.log(`[🔐] Senha do usuário "${user.username}" migrada para bcrypt.`);
+    }
+
     res.json({ success: true, username: user.username });
 });
 
@@ -243,7 +284,7 @@ app.post('/api/recover/question', async (req, res) => {
     res.json({ success: true, question: user.securityQuestion });
 });
 
-app.post('/api/recover/reset', async (req, res) => {
+app.post('/api/recover/reset', authLimiter, async (req, res) => {
     const { username, securityAnswer, newPassword } = req.body;
     if (!username || !securityAnswer || !newPassword) return res.status(400).json({ error: 'Preencha todos os campos.' });
     if (newPassword.length < 4) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 4 caracteres.' });
@@ -252,17 +293,17 @@ app.post('/api/recover/reset', async (req, res) => {
     const user = await User.findOne({ key });
     if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
     
-    const answerHash = hashPassword(securityAnswer.trim().toLowerCase());
-    if (user.securityAnswerHash !== answerHash) {
+    if (!(await verifyPassword(securityAnswer.trim().toLowerCase(), user.securityAnswerHash))) {
         return res.status(400).json({ error: 'Resposta de segurança incorreta.' });
     }
 
-    user.passwordHash = hashPassword(newPassword);
+    user.passwordHash = await hashPassword(newPassword);
+    user.securityAnswerHash = await hashPassword(securityAnswer.trim().toLowerCase());
     await user.save();
     res.json({ success: true });
 });
 
-app.post('/api/change-password', async (req, res) => {
+app.post('/api/change-password', authLimiter, async (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
     if (!username || !currentPassword || !newPassword) return res.status(400).json({ error: 'Preencha todos os campos.' });
     if (newPassword.length < 4) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 4 caracteres.' });
@@ -271,11 +312,11 @@ app.post('/api/change-password', async (req, res) => {
     const user = await User.findOne({ key });
     if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
 
-    if (user.passwordHash !== hashPassword(currentPassword)) {
+    if (!(await verifyPassword(currentPassword, user.passwordHash))) {
         return res.status(400).json({ error: 'A senha atual está incorreta.' });
     }
 
-    user.passwordHash = hashPassword(newPassword);
+    user.passwordHash = await hashPassword(newPassword);
     await user.save();
     res.json({ success: true });
 });

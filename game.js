@@ -92,7 +92,8 @@ function getLocalPairRecord(nameA, nameB) {
             wins: { [ordered[0]]: 0, [ordered[1]]: 0 },
             draws: 0,
             total: 0,
-            lastPlayed: null
+            lastPlayed: null,
+            lastStarter: null  // nome (lowercase) de quem começou a última partida
         };
         saveLocalHistory(history);
     }
@@ -121,7 +122,8 @@ function recordLocalMatch(winnerSymbol) {
             wins: { [ordered[0]]: 0, [ordered[1]]: 0 },
             draws: 0,
             total: 0,
-            lastPlayed: null
+            lastPlayed: null,
+            lastStarter: null
         };
     }
 
@@ -129,6 +131,8 @@ function recordLocalMatch(winnerSymbol) {
     const winnerName = winnerSymbol === 'X' ? nameX : winnerSymbol === 'O' ? nameO : null;
     record.total += 1;
     record.lastPlayed = new Date().toISOString();
+    // Salva quem começou esta partida (para alternar na próxima)
+    record.lastStarter = playerKey(startingPlayer === 'X' ? nameX : nameO);
     if (winnerName) record.wins[winnerName] = (record.wins[winnerName] || 0) + 1;
     else record.draws += 1;
 
@@ -362,11 +366,13 @@ async function renderMatches() {
         const resultText = m.winner === 'Empate' ? 'Empate' : `Vencedor: ${escapeHtml(m.winner)}`;
         const movesCount = (m.moves || []).length;
         const btnHtml = movesCount > 0 ? `<button class="btn-replay" onclick='startReplay(${JSON.stringify(m).replace(/'/g, "&apos;")})' style="padding:4px 8px;font-size:12px;background:var(--primary);color:#fff;border-radius:4px;border:none;cursor:pointer">▶️ Ver Replay</button>` : `<span style="font-size:12px;color:var(--text-light)">Sem gravação</span>`;
+        // Usa m.date (campo real no banco) ou m.playedAt (virtual do servidor)
+        const matchDate = m.date || m.playedAt;
         return `
             <div class="history-item" style="align-items:center;display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border);">
                 <div class="history-names">
                     <strong>${safeX} x ${safeO}</strong>
-                    <span style="display:block;font-size:12px">${new Date(m.playedAt).toLocaleString()} - ${resultText}</span>
+                    <span style="display:block;font-size:12px">${matchDate ? new Date(matchDate).toLocaleString() : 'Data desconhecida'} - ${resultText}</span>
                 </div>
                 <div>${btnHtml}</div>
             </div>
@@ -811,7 +817,16 @@ function startLocalGame() {
     currentPairScore = getLocalPairScore(nameX, nameO);
     applyPairScoreToScoreboard();
     localMatchRecorded = false;
-    startingPlayer = 'X'; // Reinicia: X sempre abre a primeira partida
+
+    // Alterna quem começa: se A começou a última, B começa agora
+    const pairRecord = getLocalPairRecord(nameX, nameO);
+    const lastStarterKey = pairRecord.lastStarter;
+    if (lastStarterKey && lastStarterKey === playerKey(nameX)) {
+        startingPlayer = 'O'; // nameX começou a última → nameO começa agora
+    } else {
+        startingPlayer = 'X'; // nameO começou a última (ou primeira partida) → nameX começa
+    }
+
     clearSession();
     initGame();
 }
@@ -1175,7 +1190,6 @@ break;
 
         case 'opponentDisconnectedWait':
             document.getElementById('overlay').classList.add('hidden');
-            if (document.getElementById('overlay-restart-request')) document.getElementById('overlay-restart-request').classList.add('hidden');
             
             const overlayLeftMsg = document.getElementById('overlay-left-msg');
             let timeLeft = Math.floor(msg.timeoutMs / 1000);
@@ -1250,11 +1264,24 @@ break;
 
         case 'opponentLeft':
 document.getElementById('overlay').classList.add('hidden');
-if (document.getElementById('overlay-restart-request')) document.getElementById('overlay-restart-request').classList.add('hidden');
 const oldMsg = document.getElementById('overlay-left-msg');
 if (oldMsg) oldMsg.innerHTML = 'Seu adversário desconectou da partida e a sala foi encerrada.';
 document.getElementById('overlay-left').classList.remove('hidden');
 break;
+
+        case 'restart':
+            // Servidor enviou novo estado e novo símbolo após alternância de quem começa
+            mySymbol = msg.symbol || mySymbol;
+            state = msg.state;
+            if (msg.headToHead) {
+                currentPairScore = msg.headToHead;
+                applyPairScoreToScoreboard();
+            }
+            document.getElementById('overlay').classList.add('hidden');
+            buildBoard();
+            renderAll();
+            updateTurnStatus();
+            break;
 
         case 'error':
             showOnlineError(msg.msg);
@@ -1344,12 +1371,11 @@ window.startReplay = function(match) {
     state = createInitialState(startingSymbol);
     
     players = { X: match.players.X, O: match.players.O };
-    document.getElementById('name-x-display').textContent = players.X;
     document.getElementById('name-x-display').textContent = match.players.X;
     document.getElementById('name-o-display').textContent = match.players.O;
     document.getElementById('game-mode-badge').textContent = '📽️ Replay';
     const mr = document.getElementById('match-record');
-    mr.textContent = `Revisando partida de ${new Date(match.playedAt).toLocaleDateString()}`;
+    mr.textContent = `Revisando partida de ${new Date(match.date || match.playedAt).toLocaleDateString()}`;
     mr.classList.remove('hidden');
     
     document.getElementById('game-controls').classList.add('hidden');
