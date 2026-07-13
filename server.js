@@ -108,6 +108,18 @@ async function getStartingSymbolForPair(playerXName, playerOName) {
     }
 }
 
+function getPlayerXName(room) {
+    if (room.players[0] && room.players[0].symbol === 'X') return room.players[0].name;
+    if (room.players[1] && room.players[1].symbol === 'X') return room.players[1].name;
+    return room.players[0] ? room.players[0].name : 'Desconhecido';
+}
+
+function getPlayerOName(room) {
+    if (room.players[0] && room.players[0].symbol === 'O') return room.players[0].name;
+    if (room.players[1] && room.players[1].symbol === 'O') return room.players[1].name;
+    return room.players[1] ? room.players[1].name : 'Desconhecido';
+}
+
 async function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
     const playerX = cleanName(nameX);
     const playerO = cleanName(nameO);
@@ -474,7 +486,7 @@ wss.on('connection', ws => {
                     myName: room.players[0].name,
                     opponentName: room.players[1].name,
                     state: room.state,
-                    headToHead: await formatPairScore(room.players[0].name, room.players[1].name)
+                    headToHead: await formatPairScore(getPlayerXName(room), getPlayerOName(room))
                 });
                 send(room.players[1].ws, {
                     type: 'gameStart',
@@ -483,7 +495,7 @@ wss.on('connection', ws => {
                     opponentName: room.players[0].name,
                     state: room.state,
                     playerId: pId,
-                    headToHead: await formatPairScore(room.players[0].name, room.players[1].name)
+                    headToHead: await formatPairScore(getPlayerXName(room), getPlayerOName(room))
                 });
 
                 console.log(`[>] Jogo iniciado em "${code}": ${room.players[0].name}(X) vs ${room.players[1].name}(O) às ${new Date().toLocaleString('pt-BR')}`);
@@ -678,7 +690,7 @@ wss.on('connection', ws => {
                             myName: p.name,
                             opponentName: opponentName,
                             state: room.state,
-                            headToHead: opponent ? await formatPairScore(room.players[0].name, room.players[1].name) : null
+                            headToHead: opponent ? await formatPairScore(getPlayerXName(room), getPlayerOName(room)) : null
                         });
                         
                         if (opponent && opponent.connected) {
@@ -713,7 +725,7 @@ wss.on('connection', ws => {
                     myName: p.name,
                     opponentName: opponentName,
                     state: room.state,
-                    headToHead: opponent ? await formatPairScore(room.players[0].name, room.players[1].name) : null
+                    headToHead: opponent ? await formatPairScore(getPlayerXName(room), getPlayerOName(room)) : null
                 });
 
                 // Avisa o oponente se ele estiver conectado
@@ -754,7 +766,7 @@ wss.on('connection', ws => {
                 
                 if (!st.matchRecorded) {
                     st.matchRecorded = true;
-                    playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                    playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
                     const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                     pendingMatches.delete(matchKey);
                 }
@@ -762,7 +774,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'state',
                     state: st,
-                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
                 });
                 const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                 const winnerName = st.winner === playerRoom.players[0].symbol ? playerRoom.players[0].name : playerRoom.players[1].name;
@@ -812,14 +824,14 @@ wss.on('connection', ws => {
                     }
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
                     broadcast(playerRoom, {
                         type: 'state',
                         state: st,
-                        headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                        headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
                     });
                     const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                     const winnerName = st.winner === playerRoom.players[0].symbol ? playerRoom.players[0].name : playerRoom.players[1].name;
@@ -842,14 +854,14 @@ wss.on('connection', ws => {
                     st.winner = 'draw';
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(playerRoom.players[0].name, playerRoom.players[1].name, st.winner, playerRoom.moves || []);
+                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
                     broadcast(playerRoom, {
                         type: 'state',
                         state: st,
-                        headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                        headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
                     });
                     const durationStr = st.startTime ? `${Math.round((Date.now() - st.startTime) / 1000)}s` : '?s';
                     console.log(`[🤝] Empate geral em "${playerRoom.code}": ${playerRoom.players[0].name} vs ${playerRoom.players[1].name} | Duração: ${durationStr}`);
@@ -867,7 +879,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'state',
                     state: st,
-                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
                 });
                 break;
             }
@@ -891,7 +903,7 @@ wss.on('connection', ws => {
                 broadcast(playerRoom, {
                     type: 'restart',
                     state: playerRoom.state,
-                    headToHead: await formatPairScore(playerRoom.players[0].name, playerRoom.players[1].name)
+                    headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
                 });
                 break;
             }
