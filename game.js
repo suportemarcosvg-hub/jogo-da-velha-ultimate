@@ -1628,6 +1628,11 @@ function renderAll() {
 }
 
 function renderBoard() {
+    // Se no modo online não for a minha vez, limpa a seleção
+    if (mode === 'online' && state.currentPlayer !== mySymbol) {
+        selectedCell = null;
+    }
+
     mainBoard.querySelectorAll('.mini-board').forEach((mb, bi) => {
         const existingWin = mb.querySelector('.mini-won-symbol');
         if (existingWin && !state.macroBoard[bi]) {
@@ -1647,7 +1652,7 @@ function renderBoard() {
 
         mb.querySelectorAll('.cell').forEach((cellEl, ci) => {
             const val = state.cells[bi][ci];
-            cellEl.classList.remove('x-cell', 'o-cell', 'taken', 'not-my-turn', 'winner', 'last-move');
+            cellEl.classList.remove('x-cell', 'o-cell', 'taken', 'not-my-turn', 'winner', 'last-move', 'selected', 'selected-x', 'selected-o');
             cellEl.innerHTML = '';
             if (val) {
                 const mark = document.createElement('span');
@@ -1659,6 +1664,10 @@ function renderBoard() {
 
             if (state.lastMove && state.lastMove.boardIdx === bi && state.lastMove.cellIdx === ci) {
                 cellEl.classList.add('last-move');
+            }
+
+            if (selectedCell && selectedCell.boardIdx === bi && selectedCell.cellIdx === ci) {
+                cellEl.classList.add('selected', state.currentPlayer === 'X' ? 'selected-x' : 'selected-o');
             }
 
             if (mode === 'online' && !val && state.currentPlayer !== mySymbol) {
@@ -1712,6 +1721,7 @@ function updateTurnStatus() {
 }
 
 // ── Jogada ────────────────────────────────────────────────────────────────────
+let selectedCell = null;
 
 function handleCellClick(e) {
     if (state.gameOver || mode === 'replay') return;
@@ -1725,7 +1735,16 @@ function handleCellClick(e) {
     if (state.activeBoard !== null && state.activeBoard !== bi) return;
     if (state.cells[bi][ci]) return;
 
+    // Confirmação de dois cliques: seleciona primeiro, confirma no segundo
+    if (!selectedCell || selectedCell.boardIdx !== bi || selectedCell.cellIdx !== ci) {
+        selectedCell = { boardIdx: bi, cellIdx: ci };
+        renderBoard(); // Exibe visual de selecionado
+        return;
+    }
+
+    // Clique confirmado no mesmo local!
     ripple(e.currentTarget);
+    selectedCell = null; // Limpa seleção após confirmar
 
     if (mode === 'online') {
         wsSend({ type: 'move', boardIdx: bi, cellIdx: ci });

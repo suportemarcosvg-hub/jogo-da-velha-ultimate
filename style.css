@@ -2915,3 +2915,28 @@ body {
     }
 }
 
+/* ===== SELEÇÃO DE CELULA (CONFIRMAÇÃO) ===== */
+.cell.selected {
+    transform: scale(1.06);
+    z-index: 5;
+    animation: selectionPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes selectionPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.cell.selected.selected-x {
+    border: 2.5px solid var(--x-color) !important;
+    background: rgba(224, 64, 94, 0.2) !important;
+    box-shadow: 0 0 14px var(--x-glow) !important;
+}
+
+.cell.selected.selected-o {
+    border: 2.5px solid var(--o-color) !important;
+    background: rgba(2, 132, 199, 0.2) !important;
+    box-shadow: 0 0 14px var(--o-glow) !important;
+}
+
