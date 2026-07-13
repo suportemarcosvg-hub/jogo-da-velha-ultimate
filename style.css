@@ -1081,6 +1081,12 @@ body {
     border-radius: 12px;
     width: 100%;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.user-profile-actions {
+    display: flex;
+    gap: 8px;
 }
 
 .user-avatar-wrap {
