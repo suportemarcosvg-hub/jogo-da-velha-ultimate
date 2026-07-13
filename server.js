@@ -92,19 +92,24 @@ async function getPairRecord(nameA, nameB) {
     return pair;
 }
 
-async function getStartingSymbolForPair(playerXName, playerOName) {
-    const pX = cleanName(playerXName);
-    const pO = cleanName(playerOName);
-    const record = await getPairRecord(pX, pO);
-    
-    if (!record.lastStarter || record.lastStarter === pO) {
-        record.lastStarter = pX;
-        await record.save();
-        return 'X';
+/**
+ * Determina qual símbolo (X ou O) o jogador que VAI COMEÇAR receberá.
+ * Alterna com base em quem começou a ÚLTIMA partida registrada (lastStarter).
+ * Não salva no banco — o lastStarter é salvo apenas em recordMatch.
+ * @param {string} nameA - Nome do primeiro jogador (quem criou a sala)
+ * @param {string} nameB - Nome do segundo jogador (quem entrou na sala)
+ * @returns {Promise<'X'|'O'>} 'X' se nameA começa, 'O' se nameB começa
+ */
+async function getStartingSymbolForPair(nameA, nameB) {
+    const pA = cleanName(nameA);
+    const pB = cleanName(nameB);
+    const record = await getPairRecord(pA, pB);
+
+    // Se ninguém jogou antes ou o lastStarter foi B → A começa agora
+    if (!record.lastStarter || cleanName(record.lastStarter) === pB.toLocaleLowerCase('pt-BR')) {
+        return 'X'; // nameA (criador) joga como X e começa
     } else {
-        record.lastStarter = pO;
-        await record.save();
-        return 'O';
+        return 'O'; // nameA NÃO começa → nameB começa como X, nameA como O
     }
 }
 
@@ -120,7 +125,16 @@ function getPlayerOName(room) {
     return room.players[1] ? room.players[1].name : 'Desconhecido';
 }
 
-async function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
+/**
+ * Registra o resultado da partida e salva quem COMEÇOU essa partida (startingPlayer)
+ * para que na próxima o outro jogador comece.
+ * @param {string} nameX - Nome de quem jogou como X nesta partida
+ * @param {string} nameO - Nome de quem jogou como O nesta partida
+ * @param {string} winnerSymbol - 'X', 'O' ou 'draw'
+ * @param {Array} moves - Lista de jogadas
+ * @param {string} starterName - Nome de quem COMEÇOU esta partida (quem era currentPlayer=X no início)
+ */
+async function recordMatch(nameX, nameO, winnerSymbol, moves = [], starterName = null) {
     const playerX = cleanName(nameX);
     const playerO = cleanName(nameO);
     const record = await getPairRecord(playerX, playerO);
@@ -135,6 +149,12 @@ async function recordMatch(nameX, nameO, winnerSymbol, moves = []) {
     } else {
         record.draws += 1;
     }
+
+    // Salva quem começou ESTA partida para alternar na próxima
+    if (starterName) {
+        record.lastStarter = cleanName(starterName).toLocaleLowerCase('pt-BR');
+    }
+
     await record.save();
 
     const match = new Match({
@@ -766,7 +786,8 @@ wss.on('connection', ws => {
                 
                 if (!st.matchRecorded) {
                     st.matchRecorded = true;
-                    playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
+                    const starterName = playerRoom.players.find(p => p.symbol === st.startingPlayer)?.name || null;
+                    playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || [], starterName);
                     const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                     pendingMatches.delete(matchKey);
                 }
@@ -824,7 +845,8 @@ wss.on('connection', ws => {
                     }
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
+                        const starterName = playerRoom.players.find(p => p.symbol === st.startingPlayer)?.name || null;
+                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || [], starterName);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
@@ -854,7 +876,8 @@ wss.on('connection', ws => {
                     st.winner = 'draw';
                     if (!st.matchRecorded) {
                         st.matchRecorded = true;
-                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || []);
+                        const starterName = playerRoom.players.find(p => p.symbol === st.startingPlayer)?.name || null;
+                        playerRoom.headToHead = await recordMatch(getPlayerXName(playerRoom), getPlayerOName(playerRoom), st.winner, playerRoom.moves || [], starterName);
                         const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
                         pendingMatches.delete(matchKey);
                     }
@@ -887,24 +910,48 @@ wss.on('connection', ws => {
             case 'restart': {
                 if (!playerRoom) return;
                 
-                const pXName = playerRoom.players.find(p => p.symbol === 'X')?.name || playerRoom.players[0].name;
-                const pOName = playerRoom.players.find(p => p.symbol === 'O')?.name || playerRoom.players[1].name;
-                const startingSymbol = await getStartingSymbolForPair(pXName, pOName);
+                // Usa os nomes reais dos jogadores na sala (não os símbolos atuais)
+                const p0Name = playerRoom.players[0].name;
+                const p1Name = playerRoom.players[1].name;
                 
-                playerRoom.state = createInitialGameState(startingSymbol);
+                // Determina quem começa a próxima partida com base no histórico
+                // getStartingSymbolForPair(nameA, nameB) retorna 'X' se nameA começa, 'O' se nameB começa
+                const startingSymbol = await getStartingSymbolForPair(p0Name, p1Name);
                 
-                const matchKey = pairKey(playerRoom.players[0].name, playerRoom.players[1].name);
+                // Atribui os símbolos corretos aos jogadores na sala
+                if (startingSymbol === 'X') {
+                    // p0 começa → p0 = X, p1 = O
+                    playerRoom.players[0].symbol = 'X';
+                    playerRoom.players[1].symbol = 'O';
+                } else {
+                    // p1 começa → p1 = X, p0 = O
+                    playerRoom.players[0].symbol = 'O';
+                    playerRoom.players[1].symbol = 'X';
+                }
+                
+                playerRoom.state = createInitialGameState('X'); // Quem for X sempre começa
+                playerRoom.moves = [];
+                
+                const matchKey = pairKey(p0Name, p1Name);
                 const pM = pendingMatches.get(matchKey);
                 if (pM) {
                     pM.state = playerRoom.state;
                     pM.moves = [];
+                    pM.pX = playerRoom.players.find(p => p.symbol === 'X')?.name;
+                    pM.pO = playerRoom.players.find(p => p.symbol === 'O')?.name;
                 }
 
-                broadcast(playerRoom, {
-                    type: 'restart',
-                    state: playerRoom.state,
-                    headToHead: await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom))
-                });
+                const headToHead = await formatPairScore(getPlayerXName(playerRoom), getPlayerOName(playerRoom));
+                for (const p of playerRoom.players) {
+                    if (p && p.connected && p.ws) {
+                        send(p.ws, {
+                            type: 'restart',
+                            symbol: p.symbol,
+                            state: playerRoom.state,
+                            headToHead
+                        });
+                    }
+                }
                 break;
             }
 
