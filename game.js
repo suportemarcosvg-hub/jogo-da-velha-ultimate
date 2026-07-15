@@ -428,6 +428,7 @@ const screens = {
 function showScreen(name) {
     Object.values(screens).forEach(s => s.classList.add('hidden'));
     screens[name].classList.remove('hidden');
+    updateDynamicFavicon();
 }
 
 // ── Persistência de Sessão ────────────────────────────────────────────────────
@@ -1670,6 +1671,7 @@ function renderAll() {
     updateMatchRecord();
     renderBoard();
     updateInfoBar();
+    updateDynamicFavicon();
 }
 
 function renderBoard() {
@@ -1916,6 +1918,82 @@ function handleGameOver(result, skipAnimation = false) {
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
+
+function updateDynamicFavicon() {
+    let color = '#000000'; // Cor padrão (preto)
+    
+    // Verifica se estamos em uma partida ativa e se o jogo não acabou
+    const isGameActive = mode && mode !== 'replay' && state && !state.gameOver && screens && screens.game && !screens.game.classList.contains('hidden');
+    
+    if (isGameActive) {
+        let isMyTurn = false;
+        if (mode === 'online') {
+            isMyTurn = (state.currentPlayer === mySymbol);
+        } else {
+            // No modo local ou contra a máquina, consideramos 'X' como o jogador principal (Vermelho) e 'O' como o oponente (Azul)
+            isMyTurn = (state.currentPlayer === 'X');
+        }
+        color = isMyTurn ? '#ff3b30' : '#007aff'; // Vermelho para a vez do jogador, Azul para o oponente
+    }
+
+    // Atualizar ou criar o favicon link
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    // Desenhar círculo colorido de fundo
+    ctx.beginPath();
+    ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    
+    // Desenhar borda branca sutil
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    if (color === '#000000') {
+        // Modo Lobby/Livre: Desenhar uma grade minimalista do jogo da velha em branco translúcido
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Linhas verticais
+        ctx.moveTo(11, 7); ctx.lineTo(11, 25);
+        ctx.moveTo(21, 7); ctx.lineTo(21, 25);
+        // Linhas horizontais
+        ctx.moveTo(7, 11); ctx.lineTo(25, 11);
+        ctx.moveTo(7, 21); ctx.lineTo(25, 21);
+        ctx.stroke();
+    } else {
+        // Modo Jogo: Desenhar o símbolo de quem é a vez ('X' ou 'O')
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        
+        if (state && state.currentPlayer === 'X') {
+            // Desenhar X
+            ctx.beginPath();
+            ctx.moveTo(10, 10); ctx.lineTo(22, 22);
+            ctx.moveTo(22, 10); ctx.lineTo(10, 22);
+            ctx.stroke();
+        } else if (state && state.currentPlayer === 'O') {
+            // Desenhar O
+            ctx.beginPath();
+            ctx.arc(16, 16, 6, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+    }
+    
+    link.href = canvas.toDataURL('image/png');
+}
 
 function ripple(el) {
     el.classList.remove('ripple');
