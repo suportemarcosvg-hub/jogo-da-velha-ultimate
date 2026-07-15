@@ -3126,3 +3126,32 @@ body {
     }
 }
 
+/* ===== RESPONSIVIDADE E DESLOCAMENTO DO CHAT (EVITAR COLISÃO) ===== */
+
+/* Transição suave para o deslocamento do tabuleiro */
+.container {
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Telas médias-grandes (ex: notebooks de 1024px, tablets deitados) */
+@media (min-width: 901px) and (max-width: 1380px) {
+    body:has(#private-chat-panel:not(.hidden)) #screen-game .container {
+        /* Desloca o tabuleiro para a esquerda, liberando espaço para o chat na direita */
+        transform: translateX(-140px);
+    }
+    body:has(#private-chat-panel:not(.hidden)) #screen-game .private-chat-panel {
+        right: 15px;
+    }
+}
+
+/* Telas médias-pequenas (ex: tablets em pé) */
+@media (min-width: 581px) and (max-width: 900px) {
+    body:has(#private-chat-panel:not(.hidden)) #screen-game .container {
+        /* Desloca menos para não cortar o lado esquerdo do tabuleiro */
+        transform: translateX(-80px);
+    }
+    body:has(#private-chat-panel:not(.hidden)) #screen-game .private-chat-panel {
+        width: 270px; /* Reduz ligeiramente o chat para caber sem colisão */
+        right: 10px;
+    }
+}
